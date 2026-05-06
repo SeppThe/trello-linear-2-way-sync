@@ -1,0 +1,3 @@
+{
+  "extends": "@Trello-Linear-2-way-sync/config/tsconfig.base.json"
+}
