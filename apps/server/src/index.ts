@@ -2,8 +2,13 @@ import { env } from "@Trello-Linear-2-way-sync/env/server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import trelloRoutes from "./routes/trello";
+import linearRoutes from "./routes/linear";
+
+import { serve } from "@hono/node-server";
 
 const app = new Hono();
+const port = Number(process.env.PORT) || 3000;
 
 app.use(logger());
 app.use(
@@ -18,12 +23,13 @@ app.get("/", (c) => {
   return c.text("OK");
 });
 
-import { serve } from "@hono/node-server";
+app.route("/webhooks/trello", trelloRoutes);
+app.route("/webhooks/linear", linearRoutes);
 
 serve(
   {
     fetch: app.fetch,
-    port: 3000,
+    port: port,
   },
   (info) => {
     console.log(`Server is running on http://localhost:${info.port}`);
