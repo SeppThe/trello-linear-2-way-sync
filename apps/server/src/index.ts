@@ -5,7 +5,10 @@ import { logger } from "hono/logger";
 import trelloRoutes from "./routes/trello";
 import linearRoutes from "./routes/linear";
 
+import { serve } from "@hono/node-server";
+
 const app = new Hono();
+const port = Number(process.env.PORT) || 3000;
 
 app.use(logger());
 app.use(
@@ -23,12 +26,10 @@ app.get("/", (c) => {
 app.route("/webhooks/trello", trelloRoutes);
 app.route("/webhooks/linear", linearRoutes);
 
-import { serve } from "@hono/node-server";
-
 serve(
   {
     fetch: app.fetch,
-    port: 3000,
+    port: port,
   },
   (info) => {
     console.log(`Server is running on http://localhost:${info.port}`);
