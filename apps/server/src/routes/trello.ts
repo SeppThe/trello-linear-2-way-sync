@@ -2,6 +2,10 @@ import { Hono } from "hono";
 
 const trelloRoutes = new Hono();
 
+trelloRoutes.get("/", (c) => {
+  return c.text("Trello webhook route works");
+});
+
 trelloRoutes.post("/", async (c) => {
   const body = await c.req.json();
 
