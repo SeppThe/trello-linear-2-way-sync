@@ -28,6 +28,9 @@ trelloRoutes.post("/", async (c) => {
 		actionType: action?.type,
 		cardId: card?.id,
 		cardName: card?.name,
+		old: action?.data?.old,
+		listBefore: action?.data?.listBefore,
+		listAfter: action?.data?.listAfter,
 	});
 
 	return c.json({ ok: true });
