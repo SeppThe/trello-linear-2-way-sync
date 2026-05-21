@@ -148,6 +148,26 @@ export function parseTrelloEvent(payload: TrelloWebhook): ParsedTrelloEvent {
 		};
 	}
 
+	if (action.type === "updateCard" && action.data?.old?.idLabels) {
+		return {
+			type: "ignored",
+			reason: "label ids updated",
+		};
+	}
+
+	if (
+		action.type === "updateCard" &&
+		typeof action.data?.old?.closed === "boolean"
+	) {
+		return {
+			type: "card.archived",
+			cardId: card.id,
+			cardName: card.name,
+			archived: card.closed,
+			previousArchived: action.data.old.closed,
+		};
+	}
+
 	return {
 		type: "ignored",
 		reason: `unhandled action type: ${action.type}`,
