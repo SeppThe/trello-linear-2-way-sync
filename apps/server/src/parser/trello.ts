@@ -157,10 +157,20 @@ export function parseTrelloEvent(payload: TrelloWebhook): ParsedTrelloEvent {
 
 	if (
 		action.type === "updateCard" &&
+		typeof action.data?.old?.dueComplete === "boolean"
+	) {
+		return {
+			type: "ignored",
+			reason: "due completion updated",
+		};
+	}
+
+	if (
+		action.type === "updateCard" &&
 		typeof action.data?.old?.closed === "boolean"
 	) {
 		return {
-			type: "card.archived",
+			type: "card.archive_status_changed",
 			cardId: card.id,
 			cardName: card.name,
 			archived: card.closed,

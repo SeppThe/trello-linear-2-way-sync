@@ -59,7 +59,7 @@ export type ParsedTrelloEvent =
 			cardId: string;
 	  }
 	| {
-			type: "card.archived";
+			type: "card.archive_status_changed";
 			cardId: string;
 			cardName: string;
 			archived?: boolean;
