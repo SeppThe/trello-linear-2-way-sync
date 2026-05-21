@@ -38,10 +38,6 @@ trelloRoutes.post("/", async (c) => {
 	const eventType = parseTrelloEvent(body);
 	await handleTrelloWebhook(eventType);
 
-	if (eventType) {
-		console.log("Processing Trello event:", eventType);
-	}
-
 	return c.json({ ok: true });
 });
 

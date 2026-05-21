@@ -69,3 +69,18 @@ export type ParsedTrelloEvent =
 			type: "ignored";
 			reason: string;
 	  };
+
+export type SyncCommand =
+	| {
+			type: "linear.issue.create";
+			trelloCardId: string;
+			title: string;
+			description?: string;
+			dueDate?: string | null;
+			labels?: string[];
+			priority?: "Urgent" | "High" | "Medium" | "Low";
+	  }
+	| {
+			type: "noop";
+			reason: string;
+	  };
