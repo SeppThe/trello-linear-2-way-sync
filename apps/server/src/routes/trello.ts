@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { parseTrelloEvent } from "@/parser/trello";
 import { trelloWebhookSchema } from "@/schemas/trello";
+import { handleTrelloWebhook } from "@/services/trello.service";
 
 const trelloRoutes = new Hono();
 
@@ -35,6 +36,8 @@ trelloRoutes.post("/", async (c) => {
 	});
 
 	const eventType = parseTrelloEvent(body);
+	await handleTrelloWebhook(eventType);
+
 	if (eventType) {
 		console.log("Processing Trello event:", eventType);
 	}

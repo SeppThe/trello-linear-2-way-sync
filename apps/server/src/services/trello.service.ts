@@ -3,15 +3,24 @@ import type { ParsedTrelloEvent } from "@/types/types";
 export async function handleTrelloWebhook(event: ParsedTrelloEvent) {
     switch (event.type) {
         case "card.created":
-            // Handle card created event
-            break;
+            console.log("Would create Linear issue:", event);
+            return;
         case "card.renamed":
-            // Handle card renamed event
-            break;
+        case "card.description_changed":
+        case "card.due_date_changed":
         case "card.moved":
-            // Handle card moved event
-            break;
-        default:
-            console.warn("Unhandled Trello event type:", event.type);
+        case "card.label_added":
+        case "card.label_removed":
+        case "card.archive_status_changed":
+            console.log("Would update Linear issue:", event);
+            return;
+
+        case "card.deleted":
+            console.log("Would close/delete Linear issue:", event);
+            return;
+
+        case "ignored":
+            console.log("Ignoring Trello event:", event.reason);
+            return;
     }
 }
