@@ -24,6 +24,7 @@ trelloRoutes.post("/", async (c) => {
 	const body = result.data;
 	const action = body.action;
 	const card = action?.data?.card;
+	const listName = action?.data?.list?.name;
 
 	console.log("Trello webhook received:", {
 		actionId: action?.id,
@@ -33,6 +34,7 @@ trelloRoutes.post("/", async (c) => {
 		old: action?.data?.old,
 		listBefore: action?.data?.listBefore,
 		listAfter: action?.data?.listAfter,
+		listName: listName,
 	});
 
 	const eventType = parseTrelloEvent(body);

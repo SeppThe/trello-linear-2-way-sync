@@ -12,6 +12,8 @@ export type ParsedTrelloEvent =
 			description?: string;
 			dueDate?: string | null;
 			labels?: TrelloLabel[];
+			listId?: string;
+			listName?: string;
 	  }
 	| {
 			type: "card.renamed";
@@ -79,6 +81,36 @@ export type SyncCommand =
 			dueDate?: string | null;
 			labels?: string[];
 			priority?: "Urgent" | "High" | "Medium" | "Low";
+			listId?: string;
+			listName?: string;
+	  }
+	| {
+			type: "linear.issue.status_update";
+			trelloCardId: string;
+			fromListId?: string;
+			fromListName?: string;
+			toListId?: string;
+			toListName?: string;
+	  }
+	| {
+			type: "linear.issue.close";
+			trelloCardId: string;
+	  }
+	| {
+			type: "linear.issue.description_update";
+			trelloCardId: string;
+			description?: string;
+	  }
+	| {
+			type: "linear.issue.due_date_update";
+			trelloCardId: string;
+			dueDate?: string | null;
+	  }
+	| {
+			type: "linear.issue.renamed";
+			trelloCardId: string;
+			title: string;
+			previousTitle: string;
 	  }
 	| {
 			type: "noop";

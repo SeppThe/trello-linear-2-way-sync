@@ -16,6 +16,7 @@ const trelloCardSchema = z.looseObject({
 	idShort: z.number().optional(),
 	shortLink: z.string().optional(),
 	idList: z.string().optional(),
+	nameList: z.string().optional(),
 	pos: z.number().optional(),
 });
 

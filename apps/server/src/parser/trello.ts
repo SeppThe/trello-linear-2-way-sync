@@ -54,6 +54,8 @@ export function parseTrelloEvent(payload: TrelloWebhook): ParsedTrelloEvent {
 			labels: card.labels
 				?.map(parseTrelloLabel)
 				.filter((label) => label !== null),
+			listId: action.data?.list?.id ?? card.idList,
+			listName: action.data?.list?.name,
 		};
 	}
 
