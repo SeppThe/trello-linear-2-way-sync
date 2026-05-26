@@ -79,7 +79,7 @@ export type SyncCommand =
 			title: string;
 			description?: string;
 			dueDate?: string | null;
-			labels?: string[];
+			labels?: TrelloLabel[];
 			priority?: "Urgent" | "High" | "Medium" | "Low";
 			listId?: string;
 			listName?: string;

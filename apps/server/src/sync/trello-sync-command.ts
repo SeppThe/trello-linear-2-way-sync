@@ -8,9 +8,7 @@ export function buildSyncCommand(event: ParsedTrelloEvent): SyncCommand {
 			title: event.cardName,
 			description: event.description,
 			dueDate: event.dueDate,
-			labels: event.labels
-				?.map((label) => label.name || "")
-				.filter((name) => name !== ""),
+			labels: event.labels,
 			priority: parsePriority(event.description),
 			listId: event.listId,
 			listName: event.listName,
