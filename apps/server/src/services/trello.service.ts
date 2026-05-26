@@ -1,30 +1,38 @@
 import { buildSyncCommand } from "@/sync/trello-sync-command";
-import type { ParsedTrelloEvent } from "@/types/types";
+import type { ParsedTrelloEvent, SyncCommand } from "@/types/types";
+import { getMappingByTrelloCardId } from "@Trello-Linear-2-way-sync/db";
+
+async function executeSyncCommand(command: SyncCommand) {
+	switch (command.type) {
+		case "linear.issue.create": {
+			const existingMapping = await getMappingByTrelloCardId(command.trelloCardId);
+
+			if (existingMapping) {
+				console.log("Mapping already exists, skipping Linear issue create:", {
+					trelloCardId: command.trelloCardId,
+					linearIssueId: existingMapping.linearIssueId,
+				});
+				return;
+			}
+
+			console.log("No mapping found, would create Linear issue:", command);
+			return;
+		}
+
+		case "noop":
+			console.log("No sync action:", command.reason);
+			return;
+
+		default:
+			console.log("Command not implemented yet:", command);
+			return;
+	}
+}
 
 export async function handleTrelloWebhook(event: ParsedTrelloEvent) {
 	const command = buildSyncCommand(event);
 	console.log("Built sync command:", command);
 
-	switch (event.type) {
-		case "card.created":
-			console.log("Would create Linear issue:", event);
-			return;
-		case "card.renamed":
-		case "card.description_changed":
-		case "card.due_date_changed":
-		case "card.moved":
-		case "card.label_added":
-		case "card.label_removed":
-		case "card.archive_status_changed":
-			console.log("Would update Linear issue:", event);
-			return;
+	await executeSyncCommand(command);
 
-		case "card.deleted":
-			console.log("Would close/delete Linear issue:", event);
-			return;
-
-		case "ignored":
-			console.log("Ignoring Trello event:", event.reason);
-			return;
-	}
 }
