@@ -67,6 +67,10 @@ export function buildSyncCommand(
 			type: "linear.issue.description_update",
 			trelloCardId: event.cardId,
 			description: event.description,
+			priority: parsePriority({
+				description: event.description,
+				config,
+			}),
 		};
 	}
 	if (event.type === "card.due_date_changed") {

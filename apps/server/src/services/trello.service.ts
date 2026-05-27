@@ -129,6 +129,7 @@ async function executeSyncCommand(command: SyncCommand) {
 			const linearIssue = await updateLinearIssueDescriptionFromCommand(
 				existingMapping.linearIssueId,
 				command.description,
+				command.priority,
 			);
 			const syncDate = new Date();
 
@@ -138,6 +139,7 @@ async function executeSyncCommand(command: SyncCommand) {
 
 			await updateLinearIssue(linearIssue.id, {
 				description: linearIssue.description,
+				priority: command.priority,
 			});
 
 			await updateMappingByTrelloCardId(command.trelloCardId, {
@@ -152,6 +154,7 @@ async function executeSyncCommand(command: SyncCommand) {
 					linearIssueId: linearIssue.id,
 					linearIdentifier: linearIssue.identifier,
 					description: linearIssue.description,
+					priority: command.priority,
 				},
 			);
 			return;

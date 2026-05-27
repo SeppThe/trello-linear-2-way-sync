@@ -320,6 +320,7 @@ export async function updateLinearIssueTitleFromCommand(
 export async function updateLinearIssueDescriptionFromCommand(
 	linearIssueId: string,
 	description?: string,
+	priority?: LinearPriority,
 ) {
 	const query = `
 		mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) {
@@ -352,6 +353,7 @@ export async function updateLinearIssueDescriptionFromCommand(
 				id: linearIssueId,
 				input: {
 					description,
+					priority: toLinearPriority(priority),
 				},
 			},
 		}),

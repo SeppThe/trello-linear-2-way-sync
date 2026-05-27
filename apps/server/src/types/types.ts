@@ -109,6 +109,7 @@ export type SyncCommand =
 			type: "linear.issue.description_update";
 			trelloCardId: string;
 			description?: string;
+			priority?: LinearPriority;
 	  }
 	| {
 			type: "linear.issue.due_date_update";
