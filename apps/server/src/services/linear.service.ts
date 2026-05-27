@@ -25,6 +25,26 @@ type LinearIssueCreateResponse = {
 	errors?: Array<{ message: string }>;
 };
 
+type LinearIssueUpdateResponse = {
+	data?: {
+		issueUpdate?: {
+			success: boolean;
+			issue?: {
+				id: string;
+				identifier?: string;
+				title: string;
+				description?: string | null;
+				priority?: number | null;
+				dueDate?: string | null;
+				state?: {
+					name?: string | null;
+				} | null;
+			} | null;
+		};
+	};
+	errors?: Array<{ message: string }>;
+};
+
 export type CreatedLinearIssue = {
 	id: string;
 	identifier?: string;
@@ -128,5 +148,76 @@ export async function createLinearIssueFromCommand(
 		priority: createdIssue.priority,
 		dueDate: createdIssue.dueDate,
 		stateName: createdIssue.state?.name,
+	};
+}
+
+export async function updateLinearIssueTitleFromCommand(
+	linearIssueId: string,
+	command: Extract<SyncCommand, { type: "linear.issue.renamed" }>,
+): Promise<CreatedLinearIssue> {
+	const query = `
+		mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) {
+			issueUpdate(id: $id, input: $input) {
+				success
+				issue {
+					id
+					identifier
+					title
+					description
+					priority
+					dueDate
+					state {
+						name
+					}
+				}
+			}
+		}
+	`;
+
+	const response = await fetch("https://api.linear.app/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: env.LINEAR_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			query,
+			variables: {
+				id: linearIssueId,
+				input: {
+					title: command.title,
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Linear API request failed with status ${response.status}`);
+	}
+
+	const payload = (await response.json()) as LinearIssueUpdateResponse;
+
+	if (payload.errors?.length) {
+		throw new Error(
+			`Linear issueUpdate failed: ${payload.errors
+				.map((error) => error.message)
+				.join("; ")}`,
+		);
+	}
+
+	const updatedIssue = payload.data?.issueUpdate?.issue;
+
+	if (!payload.data?.issueUpdate?.success || !updatedIssue) {
+		throw new Error("Linear issueUpdate did not return an updated issue");
+	}
+
+	return {
+		id: updatedIssue.id,
+		identifier: updatedIssue.identifier,
+		title: updatedIssue.title,
+		description: updatedIssue.description,
+		priority: updatedIssue.priority,
+		dueDate: updatedIssue.dueDate,
+		stateName: updatedIssue.state?.name,
 	};
 }

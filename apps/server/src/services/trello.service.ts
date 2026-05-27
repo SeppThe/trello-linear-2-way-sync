@@ -1,10 +1,16 @@
 import {
 	createMapping,
 	getMappingByTrelloCardId,
+	updateLinearIssue,
+	updateMappingByTrelloCardId,
+	updateTrelloCard,
 	upsertLinearIssue,
 	upsertTrelloCard,
 } from "@Trello-Linear-2-way-sync/db";
-import { createLinearIssueFromCommand } from "@/services/linear.service";
+import {
+	createLinearIssueFromCommand,
+	updateLinearIssueTitleFromCommand,
+} from "@/services/linear.service";
 import { buildSyncCommand } from "@/sync/trello-sync-command";
 import type { ParsedTrelloEvent, SyncCommand } from "@/types/types";
 
@@ -57,6 +63,47 @@ async function executeSyncCommand(command: SyncCommand) {
 				trelloCardId: command.trelloCardId,
 				linearIssueId: linearIssue.id,
 				linearIdentifier: linearIssue.identifier,
+			});
+			return;
+		}
+
+		case "linear.issue.renamed": {
+			const existingMapping = await getMappingByTrelloCardId(
+				command.trelloCardId,
+			);
+
+			if (!existingMapping?.linearIssueId) {
+				console.log("No mapping found, skipping Linear issue title update:", {
+					trelloCardId: command.trelloCardId,
+					title: command.title,
+				});
+				return;
+			}
+
+			const linearIssue = await updateLinearIssueTitleFromCommand(
+				existingMapping.linearIssueId,
+				command,
+			);
+			const syncDate = new Date();
+
+			await updateTrelloCard(command.trelloCardId, {
+				name: command.title,
+			});
+
+			await updateLinearIssue(linearIssue.id, {
+				title: linearIssue.title,
+			});
+
+			await updateMappingByTrelloCardId(command.trelloCardId, {
+				lastSyncSource: "trello",
+				lastSyncedAt: syncDate,
+			});
+
+			console.log("Updated Linear issue title from Trello rename:", {
+				trelloCardId: command.trelloCardId,
+				linearIssueId: linearIssue.id,
+				linearIdentifier: linearIssue.identifier,
+				title: linearIssue.title,
 			});
 			return;
 		}
