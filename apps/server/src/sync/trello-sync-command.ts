@@ -104,6 +104,7 @@ export function buildSyncCommand(
 function normalizeMappingKey(value: string) {
 	return value
 		.toLowerCase()
+		.replace(/\\/g, "")
 		.replace(/^#+\s*/, "")
 		.replace(/^\*+\s*/, "")
 		.replace(/\s*\*+$/, "")
