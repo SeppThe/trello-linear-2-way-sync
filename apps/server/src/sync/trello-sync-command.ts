@@ -47,6 +47,21 @@ export function buildSyncCommand(
 		};
 	}
 
+	if (event.type === "card.archive_status_changed") {
+		if (event.archived) {
+			return {
+				type: "linear.issue.close",
+				trelloCardId: event.cardId,
+			};
+		}
+
+		return {
+			type: "noop",
+			reason:
+				"Trello card was unarchived; Linear reopen is not implemented yet",
+		};
+	}
+
 	if (event.type === "card.description_changed") {
 		return {
 			type: "linear.issue.description_update",

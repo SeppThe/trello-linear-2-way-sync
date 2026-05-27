@@ -90,6 +90,10 @@ const linearPriorityByName: Record<LinearPriority, number> = {
 };
 
 function toLinearDueDate(dueDate?: string | null) {
+	if (dueDate === null) {
+		return null;
+	}
+
 	if (!dueDate) {
 		return undefined;
 	}

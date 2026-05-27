@@ -215,6 +215,10 @@ async function executeSyncCommand(command: SyncCommand) {
 
 			await closeLinearIssue(existingMapping.linearIssueId);
 
+			await updateTrelloCard(command.trelloCardId, {
+				archived: true,
+			});
+
 			await updateLinearIssue(existingMapping.linearIssueId, {
 				archived: true,
 				stateName: "Closed",
