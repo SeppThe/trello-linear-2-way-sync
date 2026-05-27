@@ -8,7 +8,10 @@ import {
 	upsertTrelloCard,
 } from "@Trello-Linear-2-way-sync/db";
 import {
+	closeLinearIssue,
 	createLinearIssueFromCommand,
+	updateLinearIssueDescriptionFromCommand,
+	updateLinearIssueDueDateFromCommand,
 	updateLinearIssueTitleFromCommand,
 } from "@/services/linear.service";
 import { buildSyncCommand } from "@/sync/trello-sync-command";
@@ -104,6 +107,157 @@ async function executeSyncCommand(command: SyncCommand) {
 				linearIssueId: linearIssue.id,
 				linearIdentifier: linearIssue.identifier,
 				title: linearIssue.title,
+			});
+			return;
+		}
+
+		case "linear.issue.description_update": {
+			const existingMapping = await getMappingByTrelloCardId(
+				command.trelloCardId,
+			);
+			if (!existingMapping?.linearIssueId) {
+				console.log(
+					"No mapping found, skipping Linear issue description update:",
+					{
+						trelloCardId: command.trelloCardId,
+						description: command.description,
+					},
+				);
+				return;
+			}
+			const linearIssue = await updateLinearIssueDescriptionFromCommand(
+				existingMapping.linearIssueId,
+				command.description,
+			);
+			const syncDate = new Date();
+
+			await updateTrelloCard(command.trelloCardId, {
+				description: command.description,
+			});
+
+			await updateLinearIssue(linearIssue.id, {
+				description: linearIssue.description,
+			});
+
+			await updateMappingByTrelloCardId(command.trelloCardId, {
+				lastSyncSource: "trello",
+				lastSyncedAt: syncDate,
+			});
+
+			console.log(
+				"Updated Linear issue description from Trello description change:",
+				{
+					trelloCardId: command.trelloCardId,
+					linearIssueId: linearIssue.id,
+					linearIdentifier: linearIssue.identifier,
+					description: linearIssue.description,
+				},
+			);
+			return;
+		}
+
+		case "linear.issue.due_date_update": {
+			const existingMapping = await getMappingByTrelloCardId(
+				command.trelloCardId,
+			);
+			if (!existingMapping?.linearIssueId) {
+				console.log(
+					"No mapping found, skipping Linear issue due date update:",
+					{
+						trelloCardId: command.trelloCardId,
+						dueDate: command.dueDate,
+					},
+				);
+				return;
+			}
+			const linearIssue = await updateLinearIssueDueDateFromCommand(
+				existingMapping.linearIssueId,
+				command.dueDate,
+			);
+			const syncDate = new Date();
+
+			await updateTrelloCard(command.trelloCardId, {
+				dueDate: command.dueDate ? new Date(command.dueDate) : null,
+			});
+
+			await updateLinearIssue(linearIssue.id, {
+				dueDate: linearIssue.dueDate ? new Date(linearIssue.dueDate) : null,
+			});
+
+			await updateMappingByTrelloCardId(command.trelloCardId, {
+				lastSyncSource: "trello",
+				lastSyncedAt: syncDate,
+			});
+
+			console.log(
+				"Updated Linear issue due date from Trello due date change:",
+				{
+					trelloCardId: command.trelloCardId,
+					linearIssueId: linearIssue.id,
+					linearIdentifier: linearIssue.identifier,
+					dueDate: linearIssue.dueDate,
+				},
+			);
+			return;
+		}
+
+		case "linear.issue.close": {
+			const existingMapping = await getMappingByTrelloCardId(
+				command.trelloCardId,
+			);
+			if (!existingMapping?.linearIssueId) {
+				console.log("No mapping found, skipping Linear issue close:", {
+					trelloCardId: command.trelloCardId,
+				});
+				return;
+			}
+
+			await closeLinearIssue(existingMapping.linearIssueId);
+
+			await updateLinearIssue(existingMapping.linearIssueId, {
+				archived: true,
+				stateName: "Closed",
+			});
+
+			const syncDate = new Date();
+			await updateMappingByTrelloCardId(command.trelloCardId, {
+				lastSyncSource: "trello",
+				lastSyncedAt: syncDate,
+			});
+
+			console.log("Closed Linear issue from Trello card deletion:", {
+				trelloCardId: command.trelloCardId,
+				linearIssueId: existingMapping.linearIssueId,
+			});
+			return;
+		}
+
+		case "linear.issue.status_update": {
+			const existingMapping = await getMappingByTrelloCardId(
+				command.trelloCardId,
+			);
+			if (!existingMapping?.linearIssueId) {
+				console.log("No mapping found, skipping Linear issue status update:", {
+					trelloCardId: command.trelloCardId,
+					toListName: command.toListName,
+				});
+				return;
+			}
+
+			await updateLinearIssue(existingMapping.linearIssueId, {
+				stateName: command.toListName,
+			});
+
+			const syncDate = new Date();
+			await updateMappingByTrelloCardId(command.trelloCardId, {
+				lastSyncSource: "trello",
+				lastSyncedAt: syncDate,
+			});
+
+			console.log("Updated Linear issue status from Trello card move:", {
+				trelloCardId: command.trelloCardId,
+				linearIssueId: existingMapping.linearIssueId,
+				toListName: command.toListName,
 			});
 			return;
 		}

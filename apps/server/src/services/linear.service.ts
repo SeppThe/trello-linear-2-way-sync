@@ -45,6 +45,15 @@ type LinearIssueUpdateResponse = {
 	errors?: Array<{ message: string }>;
 };
 
+type LinearIssueArchiveResponse = {
+	data?: {
+		issueArchive?: {
+			success: boolean;
+		};
+	};
+	errors?: Array<{ message: string }>;
+};
+
 export type CreatedLinearIssue = {
 	id: string;
 	identifier?: string;
@@ -220,4 +229,186 @@ export async function updateLinearIssueTitleFromCommand(
 		dueDate: updatedIssue.dueDate,
 		stateName: updatedIssue.state?.name,
 	};
+}
+
+export async function updateLinearIssueDescriptionFromCommand(
+	linearIssueId: string,
+	description?: string,
+) {
+	const query = `
+		mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) {
+			issueUpdate(id: $id, input: $input) {
+				success
+				issue {
+					id
+					identifier
+					title
+					description
+					priority
+					dueDate
+					state {
+						name
+					}
+				}
+			}
+		}
+	`;
+
+	const response = await fetch("https://api.linear.app/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: env.LINEAR_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			query,
+			variables: {
+				id: linearIssueId,
+				input: {
+					description,
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Linear API request failed with status ${response.status}`);
+	}
+
+	const payload = (await response.json()) as LinearIssueUpdateResponse;
+
+	if (payload.errors?.length) {
+		throw new Error(
+			`Linear issueUpdate failed: ${payload.errors
+				.map((error) => error.message)
+				.join("; ")}`,
+		);
+	}
+
+	const updatedIssue = payload.data?.issueUpdate?.issue;
+
+	if (!payload.data?.issueUpdate?.success || !updatedIssue) {
+		throw new Error("Linear issueUpdate did not return an updated issue");
+	}
+
+	return {
+		id: updatedIssue.id,
+		identifier: updatedIssue.identifier,
+		title: updatedIssue.title,
+		description: updatedIssue.description,
+		priority: updatedIssue.priority,
+		dueDate: updatedIssue.dueDate,
+		stateName: updatedIssue.state?.name,
+	};
+}
+
+export async function updateLinearIssueDueDateFromCommand(
+	linearIssueId: string,
+	dueDate?: string | null,
+) {
+	const query = `
+		mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) {
+			issueUpdate(id: $id, input: $input) {
+				success
+				issue {
+					id
+					identifier
+					title
+					description
+					priority
+					dueDate
+					state {
+						name
+					}
+				}
+			}
+		}
+	`;
+
+	const response = await fetch("https://api.linear.app/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: env.LINEAR_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			query,
+			variables: {
+				id: linearIssueId,
+				input: {
+					dueDate: toLinearDueDate(dueDate),
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Linear API request failed with status ${response.status}`);
+	}
+
+	const payload = (await response.json()) as LinearIssueUpdateResponse;
+
+	if (payload.errors?.length) {
+		throw new Error(
+			`Linear issueUpdate failed: ${payload.errors
+				.map((error) => error.message)
+				.join("; ")}`,
+		);
+	}
+
+	const updatedIssue = payload.data?.issueUpdate?.issue;
+
+	if (!payload.data?.issueUpdate?.success || !updatedIssue) {
+		throw new Error("Linear issueUpdate did not return an updated issue");
+	}
+
+	return {
+		id: updatedIssue.id,
+		identifier: updatedIssue.identifier,
+		title: updatedIssue.title,
+		description: updatedIssue.description,
+		priority: updatedIssue.priority,
+		dueDate: updatedIssue.dueDate,
+		stateName: updatedIssue.state?.name,
+	};
+}
+
+export async function closeLinearIssue(linearIssueId: string) {
+	const query = `
+		mutation IssueArchive($id: String!) {
+			issueArchive(id: $id) {
+				success
+			}
+		}
+	`;
+
+	const response = await fetch("https://api.linear.app/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: env.LINEAR_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			query,
+			variables: { id: linearIssueId },
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Linear API request failed with status ${response.status}`);
+	}
+
+	const payload = (await response.json()) as LinearIssueArchiveResponse;
+
+	if (payload.errors?.length) {
+		throw new Error(
+			`Linear issueArchive failed: ${payload.errors
+				.map((error) => error.message)
+				.join("; ")}`,
+		);
+	}
+
+	if (!payload.data?.issueArchive?.success) {
+		throw new Error("Linear issueArchive was not successful");
+	}
 }
