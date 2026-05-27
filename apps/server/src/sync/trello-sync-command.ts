@@ -1,6 +1,14 @@
-import type { ParsedTrelloEvent, SyncCommand } from "@/types/types";
+import { defaultSyncConfig, type SyncConfig } from "@/sync/sync-config";
+import type {
+	ParsedTrelloEvent,
+	SyncCommand,
+	TrelloLabel,
+} from "@/types/types";
 
-export function buildSyncCommand(event: ParsedTrelloEvent): SyncCommand {
+export function buildSyncCommand(
+	event: ParsedTrelloEvent,
+	config: SyncConfig = defaultSyncConfig,
+): SyncCommand {
 	if (event.type === "card.created") {
 		return {
 			type: "linear.issue.create",
@@ -9,7 +17,12 @@ export function buildSyncCommand(event: ParsedTrelloEvent): SyncCommand {
 			description: event.description,
 			dueDate: event.dueDate,
 			labels: event.labels,
-			priority: parsePriority(event.description),
+			priority: parsePriority({
+				labels: event.labels,
+				description: event.description,
+				listName: event.listName,
+				config,
+			}),
 			listId: event.listId,
 			listName: event.listName,
 		};
@@ -23,6 +36,7 @@ export function buildSyncCommand(event: ParsedTrelloEvent): SyncCommand {
 			fromListName: event.fromListName,
 			toListId: event.toListId,
 			toListName: event.toListName,
+			linearStateName: parseStatusFromListName(event.toListName, config),
 		};
 	}
 
@@ -68,13 +82,88 @@ export function buildSyncCommand(event: ParsedTrelloEvent): SyncCommand {
 	};
 }
 
-function parsePriority(description?: string) {
-	if (!description) return undefined;
+function normalizeMappingKey(value: string) {
+	return value
+		.toLowerCase()
+		.replace(/^#+\s*/, "")
+		.replace(/[_-]+/g, " ")
+		.trim();
+}
 
-	if (description.includes("## Urgent")) return "Urgent";
-	if (description.includes("## High")) return "High";
-	if (description.includes("## Medium")) return "Medium";
-	if (description.includes("## Low")) return "Low";
+function parsePriorityFromLabelsWithConfig(
+	labels: TrelloLabel[] | undefined,
+	config: SyncConfig,
+) {
+	for (const label of labels ?? []) {
+		if (!label.name) {
+			continue;
+		}
+
+		const priority = config.priorityTokens[normalizeMappingKey(label.name)];
+
+		if (priority) {
+			return priority;
+		}
+	}
 
 	return undefined;
+}
+
+function parsePriorityFromDescription(
+	description: string | undefined,
+	config: SyncConfig,
+) {
+	if (!description) {
+		return undefined;
+	}
+
+	for (const line of description.split("\n")) {
+		const priority = config.priorityTokens[normalizeMappingKey(line)];
+
+		if (priority) {
+			return priority;
+		}
+	}
+
+	return undefined;
+}
+
+function parsePriorityFromListName(
+	listName: string | undefined,
+	config: SyncConfig,
+) {
+	if (!listName) {
+		return undefined;
+	}
+
+	return config.priorityListNames[normalizeMappingKey(listName)];
+}
+
+function parsePriority({
+	labels,
+	description,
+	listName,
+	config,
+}: {
+	labels?: TrelloLabel[];
+	description?: string;
+	listName?: string;
+	config: SyncConfig;
+}) {
+	return (
+		parsePriorityFromLabelsWithConfig(labels, config) ??
+		parsePriorityFromDescription(description, config) ??
+		parsePriorityFromListName(listName, config)
+	);
+}
+
+function parseStatusFromListName(
+	listName: string | undefined,
+	config: SyncConfig,
+) {
+	if (!listName) {
+		return undefined;
+	}
+
+	return config.statusListNames[normalizeMappingKey(listName)];
 }

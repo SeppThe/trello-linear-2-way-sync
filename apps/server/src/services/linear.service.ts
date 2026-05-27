@@ -65,6 +65,7 @@ export type CreatedLinearIssue = {
 };
 
 const linearPriorityByName: Record<LinearPriority, number> = {
+	"No Priority": 0,
 	Urgent: 1,
 	High: 2,
 	Medium: 3,

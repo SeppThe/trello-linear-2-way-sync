@@ -4,6 +4,13 @@ export type TrelloLabel = {
 	color?: string | null;
 };
 
+export type LinearPriority =
+	| "No Priority"
+	| "Urgent"
+	| "High"
+	| "Medium"
+	| "Low";
+
 export type ParsedTrelloEvent =
 	| {
 			type: "card.created";
@@ -36,6 +43,7 @@ export type ParsedTrelloEvent =
 			fromListName?: string;
 			toListId?: string;
 			toListName?: string;
+			linearStateName?: string;
 	  }
 	| {
 			type: "card.due_date_changed";
@@ -80,7 +88,7 @@ export type SyncCommand =
 			description?: string;
 			dueDate?: string | null;
 			labels?: TrelloLabel[];
-			priority?: "Urgent" | "High" | "Medium" | "Low";
+			priority?: LinearPriority;
 			listId?: string;
 			listName?: string;
 	  }
@@ -91,6 +99,7 @@ export type SyncCommand =
 			fromListName?: string;
 			toListId?: string;
 			toListName?: string;
+			linearStateName?: string;
 	  }
 	| {
 			type: "linear.issue.close";
