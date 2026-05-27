@@ -12,6 +12,7 @@ import {
 	createLinearIssueFromCommand,
 	updateLinearIssueDescriptionFromCommand,
 	updateLinearIssueDueDateFromCommand,
+	updateLinearIssueStateByName,
 	updateLinearIssueTitleFromCommand,
 } from "@/services/linear.service";
 import { buildSyncCommand } from "@/sync/trello-sync-command";
@@ -244,8 +245,26 @@ async function executeSyncCommand(command: SyncCommand) {
 				return;
 			}
 
+			if (!command.linearStateName) {
+				console.log("No Linear state mapping found for Trello list:", {
+					trelloCardId: command.trelloCardId,
+					toListName: command.toListName,
+				});
+				return;
+			}
+
+			const linearIssue = await updateLinearIssueStateByName(
+				existingMapping.linearIssueId,
+				command.linearStateName,
+			);
+
+			await updateTrelloCard(command.trelloCardId, {
+				listId: command.toListId,
+				listName: command.toListName,
+			});
+
 			await updateLinearIssue(existingMapping.linearIssueId, {
-				stateName: command.toListName,
+				stateName: linearIssue.stateName,
 			});
 
 			const syncDate = new Date();
@@ -258,6 +277,7 @@ async function executeSyncCommand(command: SyncCommand) {
 				trelloCardId: command.trelloCardId,
 				linearIssueId: existingMapping.linearIssueId,
 				toListName: command.toListName,
+				linearStateName: linearIssue.stateName,
 			});
 			return;
 		}

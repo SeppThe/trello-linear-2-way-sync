@@ -54,6 +54,23 @@ type LinearIssueArchiveResponse = {
 	errors?: Array<{ message: string }>;
 };
 
+type LinearWorkflowState = {
+	id: string;
+	name: string;
+	type?: string | null;
+};
+
+type LinearWorkflowStatesResponse = {
+	data?: {
+		team?: {
+			states?: {
+				nodes?: LinearWorkflowState[];
+			};
+		};
+	};
+	errors?: Array<{ message: string }>;
+};
+
 export type CreatedLinearIssue = {
 	id: string;
 	identifier?: string;
@@ -86,6 +103,70 @@ function toLinearPriority(priority?: LinearPriority) {
 	}
 
 	return linearPriorityByName[priority];
+}
+
+async function getLinearWorkflowStates() {
+	const query = `
+		query TeamStates($teamId: String!, $first: Int) {
+			team(id: $teamId) {
+				states(first: $first) {
+					nodes {
+						id
+						name
+						type
+					}
+				}
+			}
+		}
+	`;
+
+	const response = await fetch("https://api.linear.app/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: env.LINEAR_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			query,
+			variables: {
+				teamId: env.LINEAR_TEAM_ID,
+				first: 100,
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Linear API request failed with status ${response.status}`);
+	}
+
+	const payload = (await response.json()) as LinearWorkflowStatesResponse;
+
+	if (payload.errors?.length) {
+		throw new Error(
+			`Linear team states query failed: ${payload.errors
+				.map((error) => error.message)
+				.join("; ")}`,
+		);
+	}
+
+	return payload.data?.team?.states?.nodes ?? [];
+}
+
+async function getLinearStateIdByName(stateName: string) {
+	const states = await getLinearWorkflowStates();
+	const state = states.find(
+		(state) => state.name.toLowerCase() === stateName.toLowerCase(),
+	);
+
+	if (!state) {
+		throw new Error(
+			`Linear workflow state not found: ${stateName}. Available states: ${states
+				.map((availableState) => availableState.name)
+				.join(", ")}`,
+		);
+	}
+
+	return state?.id;
 }
 
 export async function createLinearIssueFromCommand(
@@ -338,6 +419,78 @@ export async function updateLinearIssueDueDateFromCommand(
 				id: linearIssueId,
 				input: {
 					dueDate: toLinearDueDate(dueDate),
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Linear API request failed with status ${response.status}`);
+	}
+
+	const payload = (await response.json()) as LinearIssueUpdateResponse;
+
+	if (payload.errors?.length) {
+		throw new Error(
+			`Linear issueUpdate failed: ${payload.errors
+				.map((error) => error.message)
+				.join("; ")}`,
+		);
+	}
+
+	const updatedIssue = payload.data?.issueUpdate?.issue;
+
+	if (!payload.data?.issueUpdate?.success || !updatedIssue) {
+		throw new Error("Linear issueUpdate did not return an updated issue");
+	}
+
+	return {
+		id: updatedIssue.id,
+		identifier: updatedIssue.identifier,
+		title: updatedIssue.title,
+		description: updatedIssue.description,
+		priority: updatedIssue.priority,
+		dueDate: updatedIssue.dueDate,
+		stateName: updatedIssue.state?.name,
+	};
+}
+
+export async function updateLinearIssueStateByName(
+	linearIssueId: string,
+	stateName: string,
+): Promise<CreatedLinearIssue> {
+	const stateId = await getLinearStateIdByName(stateName);
+	const query = `
+		mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) {
+			issueUpdate(id: $id, input: $input) {
+				success
+				issue {
+					id
+					identifier
+					title
+					description
+					priority
+					dueDate
+					state {
+						name
+					}
+				}
+			}
+		}
+	`;
+
+	const response = await fetch("https://api.linear.app/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: env.LINEAR_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			query,
+			variables: {
+				id: linearIssueId,
+				input: {
+					stateId,
 				},
 			},
 		}),
