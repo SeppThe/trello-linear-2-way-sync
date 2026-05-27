@@ -101,6 +101,8 @@ function normalizeMappingKey(value: string) {
 	return value
 		.toLowerCase()
 		.replace(/^#+\s*/, "")
+		.replace(/^\*+\s*/, "")
+		.replace(/\s*\*+$/, "")
 		.replace(/[_-]+/g, " ")
 		.trim();
 }
