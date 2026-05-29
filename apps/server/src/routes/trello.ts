@@ -35,6 +35,8 @@ trelloRoutes.post("/", async (c) => {
 		listBefore: action?.data?.listBefore,
 		listAfter: action?.data?.listAfter,
 		listName: listName,
+		commentText: action?.data?.text,
+		memberCreator: action?.memberCreator,
 	});
 
 	const eventType = parseTrelloEvent(body);

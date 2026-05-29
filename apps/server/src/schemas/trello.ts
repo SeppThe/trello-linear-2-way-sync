@@ -34,6 +34,7 @@ const trelloActionSchema = z.looseObject({
 			card: trelloCardSchema.optional(),
 			label: trelloLabelSchema.optional(),
 			list: trelloListSchema.optional(),
+			test: z.string().optional(),
 			board: z
 				.looseObject({
 					id: z.string().optional(),
@@ -46,7 +47,15 @@ const trelloActionSchema = z.looseObject({
 			listAfter: trelloListSchema.optional(),
 		})
 		.optional(),
+	memberCreator: z
+		.looseObject({
+			id: z.string().optional(),
+			username: z.string().optional(),
+			fullName: z.string().optional(),
+		})
+		.optional(),
 });
+
 
 export const trelloWebhookSchema = z.looseObject({
 	action: trelloActionSchema.optional(),
