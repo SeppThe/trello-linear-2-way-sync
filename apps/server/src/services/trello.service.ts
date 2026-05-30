@@ -9,6 +9,7 @@ import {
 } from "@Trello-Linear-2-way-sync/db";
 import {
 	closeLinearIssue,
+	createLinearComment,
 	createLinearIssueFromCommand,
 	updateLinearIssueDescriptionFromCommand,
 	updateLinearIssueDueDateFromCommand,
@@ -67,6 +68,39 @@ async function executeSyncCommand(command: SyncCommand) {
 				trelloCardId: command.trelloCardId,
 				linearIssueId: linearIssue.id,
 				linearIdentifier: linearIssue.identifier,
+			});
+			return;
+		}
+
+		case "linear.comment.create": {
+			const existingMapping = await getMappingByTrelloCardId(
+				command.trelloCardId,
+			);
+
+			if (!existingMapping?.linearIssueId) {
+				console.log("No mapping found, skipping Linear comment create:", {
+					trelloCardId: command.trelloCardId,
+					trelloActionId: command.trelloActionId,
+				});
+				return;
+			}
+
+			const comment = await createLinearComment(
+				existingMapping.linearIssueId,
+				command.body,
+			);
+
+			const syncDate = new Date();
+			await updateMappingByTrelloCardId(command.trelloCardId, {
+				lastSyncSource: "trello",
+				lastSyncedAt: syncDate,
+			});
+
+			console.log("Created Linear comment from Trello comment:", {
+				trelloCardId: command.trelloCardId,
+				linearIssueId: existingMapping.linearIssueId,
+				linearCommentId: comment.id,
+				trelloActionId: command.trelloActionId,
 			});
 			return;
 		}

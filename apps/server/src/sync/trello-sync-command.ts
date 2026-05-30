@@ -28,6 +28,15 @@ export function buildSyncCommand(
 		};
 	}
 
+	if (event.type === "card.commented") {
+		return {
+			type: "linear.comment.create",
+			trelloCardId: event.cardId,
+			body: formatTrelloComment(event),
+			trelloActionId: event.trelloActionId,
+		};
+	}
+
 	if (event.type === "card.moved") {
 		return {
 			type: "linear.issue.status_update",
@@ -110,6 +119,15 @@ function normalizeMappingKey(value: string) {
 		.replace(/\s*\*+$/, "")
 		.replace(/[_-]+/g, " ")
 		.trim();
+}
+
+function formatTrelloComment(
+	event: Extract<ParsedTrelloEvent, { type: "card.commented" }>,
+) {
+	const author =
+		event.authorName ?? event.authorUsername ?? "Unknown Trello user";
+
+	return `Trello comment from ${author}:\n\n${event.commentText}`;
 }
 
 function parsePriorityFromLabelsWithConfig(

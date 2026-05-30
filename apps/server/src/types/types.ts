@@ -76,6 +76,15 @@ export type ParsedTrelloEvent =
 			previousArchived: boolean;
 	  }
 	| {
+			type: "card.commented";
+			cardId: string;
+			cardName: string;
+			commentText: string;
+			trelloActionId: string;
+			authorName?: string;
+			authorUsername?: string;
+	  }
+	| {
 			type: "ignored";
 			reason: string;
 	  };
@@ -121,6 +130,12 @@ export type SyncCommand =
 			trelloCardId: string;
 			title: string;
 			previousTitle: string;
+	  }
+	| {
+			type: "linear.comment.create";
+			trelloCardId: string;
+			body: string;
+			trelloActionId: string;
 	  }
 	| {
 			type: "noop";

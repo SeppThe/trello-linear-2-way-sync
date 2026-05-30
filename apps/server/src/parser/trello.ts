@@ -59,6 +59,22 @@ export function parseTrelloEvent(payload: TrelloWebhook): ParsedTrelloEvent {
 		};
 	}
 
+	if (action.type === "commentCard" && typeof action.data?.text === "string") {
+		if (!action.id) {
+			return { type: "ignored", reason: "comment is missing action id" };
+		}
+
+		return {
+			type: "card.commented",
+			cardId: card.id,
+			cardName: card.name,
+			commentText: action.data.text,
+			trelloActionId: action.id,
+			authorName: action.memberCreator?.fullName,
+			authorUsername: action.memberCreator?.username,
+		};
+	}
+
 	if (
 		action.type === "updateCard" &&
 		typeof action.data?.old?.name === "string"

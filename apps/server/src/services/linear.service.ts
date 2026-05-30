@@ -54,6 +54,19 @@ type LinearIssueArchiveResponse = {
 	errors?: Array<{ message: string }>;
 };
 
+type LinearCommentCreateResponse = {
+	data?: {
+		commentCreate?: {
+			success: boolean;
+			comment?: {
+				id: string;
+				body?: string | null;
+			} | null;
+		};
+	};
+	errors?: Array<{ message: string }>;
+};
+
 type LinearWorkflowState = {
 	id: string;
 	name: string;
@@ -79,6 +92,11 @@ export type CreatedLinearIssue = {
 	priority?: number | null;
 	dueDate?: string | null;
 	stateName?: string | null;
+};
+
+export type CreatedLinearComment = {
+	id: string;
+	body?: string | null;
 };
 
 const linearPriorityByName: Record<LinearPriority, number> = {
@@ -530,6 +548,65 @@ export async function updateLinearIssueStateByName(
 		priority: updatedIssue.priority,
 		dueDate: updatedIssue.dueDate,
 		stateName: updatedIssue.state?.name,
+	};
+}
+
+export async function createLinearComment(
+	issueId: string,
+	body: string,
+): Promise<CreatedLinearComment> {
+	const query = `
+		mutation CommentCreate($input: CommentCreateInput!) {
+			commentCreate(input: $input) {
+				success
+				comment {
+					id
+					body
+				}
+			}
+		}
+	`;
+
+	const response = await fetch("https://api.linear.app/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: env.LINEAR_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			query,
+			variables: {
+				input: {
+					issueId,
+					body,
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Linear API request failed with status ${response.status}`);
+	}
+
+	const payload = (await response.json()) as LinearCommentCreateResponse;
+
+	if (payload.errors?.length) {
+		throw new Error(
+			`Linear commentCreate failed: ${payload.errors
+				.map((error) => error.message)
+				.join("; ")}`,
+		);
+	}
+
+	const comment = payload.data?.commentCreate?.comment;
+
+	if (!payload.data?.commentCreate?.success || !comment) {
+		throw new Error("Linear commentCreate did not return a created comment");
+	}
+
+	return {
+		id: comment.id,
+		body: comment.body,
 	};
 }
 
