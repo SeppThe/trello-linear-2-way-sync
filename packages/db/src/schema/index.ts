@@ -75,3 +75,27 @@ export const trelloLinearMappings = pgTable(
 		index("trello_linear_mappings_linear_issue_id_idx").on(table.linearIssueId),
 	],
 );
+
+export const commentMappings = pgTable(
+	"comment_mappings",
+	{
+		id: bigserial("id", { mode: "number" }).primaryKey(),
+		trelloActionId: text("trello_action_id").notNull().unique(),
+		trelloCardId: text("trello_card_id")
+			.notNull()
+			.references(() => trelloCards.id, { onDelete: "cascade" }),
+		linearIssueId: text("linear_issue_id")
+			.notNull()
+			.references(() => linearIssues.id, { onDelete: "cascade" }),
+		linearCommentId: text("linear_comment_id").notNull().unique(),
+		source: text("source").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("comment_mappings_trello_action_id_idx").on(table.trelloActionId),
+		index("comment_mappings_trello_card_id_idx").on(table.trelloCardId),
+		index("comment_mappings_linear_issue_id_idx").on(table.linearIssueId),
+	],
+);

@@ -1,5 +1,7 @@
 import {
+	createCommentMapping,
 	createMapping,
+	getCommentMappingByTrelloActionId,
 	getMappingByTrelloCardId,
 	updateLinearIssue,
 	updateMappingByTrelloCardId,
@@ -73,6 +75,18 @@ async function executeSyncCommand(command: SyncCommand) {
 		}
 
 		case "linear.comment.create": {
+			const existingCommentMapping = await getCommentMappingByTrelloActionId(
+				command.trelloActionId,
+			);
+
+			if (existingCommentMapping) {
+				console.log("Trello comment already synced, skipping:", {
+					trelloActionId: command.trelloActionId,
+					linearCommentId: existingCommentMapping.linearCommentId,
+				});
+				return;
+			}
+
 			const existingMapping = await getMappingByTrelloCardId(
 				command.trelloCardId,
 			);
@@ -91,6 +105,14 @@ async function executeSyncCommand(command: SyncCommand) {
 			);
 
 			const syncDate = new Date();
+			await createCommentMapping({
+				trelloActionId: command.trelloActionId,
+				trelloCardId: command.trelloCardId,
+				linearIssueId: existingMapping.linearIssueId,
+				linearCommentId: comment.id,
+				source: "trello",
+			});
+
 			await updateMappingByTrelloCardId(command.trelloCardId, {
 				lastSyncSource: "trello",
 				lastSyncedAt: syncDate,
