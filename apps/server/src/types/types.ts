@@ -89,6 +89,18 @@ export type ParsedTrelloEvent =
 			reason: string;
 	  };
 
+export type ParsedLinearEvent =
+	| {
+			type: "issue.renamed";
+			linearIssueId: string;
+			title: string;
+			previousTitle: string;
+	  }
+	| {
+			type: "ignored";
+			reason: string;
+	  };
+
 export type SyncCommand =
 	| {
 			type: "linear.issue.create";
@@ -136,6 +148,18 @@ export type SyncCommand =
 			trelloCardId: string;
 			body: string;
 			trelloActionId: string;
+	  }
+	| {
+			type: "noop";
+			reason: string;
+	  };
+
+export type LinearSyncCommand =
+	| {
+			type: "trello.card.rename";
+			linearIssueId: string;
+			title: string;
+			previousTitle: string;
 	  }
 	| {
 			type: "noop";

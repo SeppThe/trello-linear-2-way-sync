@@ -1,11 +1,104 @@
+import { env } from "@Trello-Linear-2-way-sync/env/server";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
+import { parseLinearEvent } from "@/parser/linear";
+import { linearWebhookSchema } from "@/schemas/linear";
+import { handleLinearWebhook } from "@/services/linear-webhook.service";
 
 const linearRoutes = new Hono();
+const LINEAR_REPLAY_WINDOW_MS = 60_000;
+
+function verifyLinearSignature(rawBody: string, signatureHeader?: string) {
+	if (!env.LINEAR_WEBHOOK_SECRET) {
+		return true;
+	}
+
+	if (!signatureHeader) {
+		return false;
+	}
+
+	const headerSignature = Buffer.from(signatureHeader, "hex");
+	const computedSignature = createHmac("sha256", env.LINEAR_WEBHOOK_SECRET)
+		.update(rawBody)
+		.digest();
+
+	if (headerSignature.length !== computedSignature.length) {
+		return false;
+	}
+
+	return timingSafeEqual(computedSignature, headerSignature);
+}
+
+function isCurrentLinearWebhook(timestamp?: number) {
+	if (!env.LINEAR_WEBHOOK_SECRET) {
+		return true;
+	}
+
+	if (!timestamp) {
+		return false;
+	}
+
+	return Math.abs(Date.now() - timestamp) <= LINEAR_REPLAY_WINDOW_MS;
+}
 
 linearRoutes.post("/", async (c) => {
-	const body = await c.req.json();
+	const rawBody = await c.req.text();
+	const signature = c.req.header("Linear-Signature");
+	const deliveryId = c.req.header("Linear-Delivery");
+	const linearEvent = c.req.header("Linear-Event");
 
-	console.log("Received Linear webhook:", body);
+	if (!verifyLinearSignature(rawBody, signature)) {
+		console.warn("Invalid Linear webhook signature:", {
+			deliveryId,
+			linearEvent,
+		});
+		return c.json({ ok: false }, 401);
+	}
+
+	let rawPayload: unknown;
+
+	try {
+		rawPayload = JSON.parse(rawBody);
+	} catch (error) {
+		console.error("Invalid Linear webhook JSON:", error);
+		return c.json({ ok: true });
+	}
+
+	const result = linearWebhookSchema.safeParse(rawPayload);
+
+	if (!result.success) {
+		console.error("Invalid Linear webhook:", result.error.issues);
+		return c.json({ ok: true });
+	}
+
+	const body = result.data;
+	const issue = body.data;
+
+	if (!isCurrentLinearWebhook(body.webhookTimestamp)) {
+		console.warn("Stale Linear webhook timestamp:", {
+			deliveryId,
+			linearEvent,
+			webhookTimestamp: body.webhookTimestamp,
+		});
+		return c.json({ ok: false }, 401);
+	}
+
+	console.log("Linear webhook received:", {
+		deliveryId,
+		linearEvent,
+		webhookId: body.webhookId,
+		action: body.action,
+		type: body.type,
+		issueId: issue?.id,
+		identifier: issue?.identifier,
+		title: issue?.title,
+		url: body.url,
+		updatedFrom: body.updatedFrom,
+		actor: body.actor,
+	});
+
+	const event = parseLinearEvent(body);
+	await handleLinearWebhook(event);
 
 	return c.json({ ok: true });
 });

@@ -7,6 +7,9 @@ export const env = createEnv({
 		DATABASE_URL: z.string().min(1),
 		LINEAR_API_KEY: z.string().min(1),
 		LINEAR_TEAM_ID: z.string().min(1),
+		LINEAR_WEBHOOK_SECRET: z.string().min(1).optional(),
+		TRELLO_API_KEY: z.string().min(1).optional(),
+		TRELLO_TOKEN: z.string().min(1).optional(),
 		CORS_ORIGIN: z.url(),
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
