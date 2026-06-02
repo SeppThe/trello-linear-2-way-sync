@@ -4,6 +4,7 @@ export type SyncConfig = {
 	priorityTokens: Record<string, LinearPriority>;
 	priorityListNames: Record<string, LinearPriority>;
 	statusListNames: Record<string, string>;
+	linearStateListNames: Record<string, string>;
 };
 
 export const defaultSyncConfig: SyncConfig = {
@@ -44,6 +45,12 @@ export const defaultSyncConfig: SyncConfig = {
 		"todo prio 1": "Todo",
 		"todo prio 2": "Todo",
 		"todo prio 3": "Todo",
+		"in progress": "In Progress",
+		done: "Done",
+	},
+	linearStateListNames: {
+		backlog: "Wishes",
+		todo: "ToDo",
 		"in progress": "In Progress",
 		done: "Done",
 	},

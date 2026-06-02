@@ -97,6 +97,24 @@ export type ParsedLinearEvent =
 			previousTitle: string;
 	  }
 	| {
+			type: "issue.description_changed";
+			linearIssueId: string;
+			description?: string | null;
+			previousDescription?: string | null;
+	  }
+	| {
+			type: "issue.due_date_changed";
+			linearIssueId: string;
+			dueDate?: string | null;
+			previousDueDate?: string | null;
+	  }
+	| {
+			type: "issue.state_changed";
+			linearIssueId: string;
+			stateName: string;
+			previousStateName?: string;
+	  }
+	| {
 			type: "ignored";
 			reason: string;
 	  };
@@ -160,6 +178,22 @@ export type LinearSyncCommand =
 			linearIssueId: string;
 			title: string;
 			previousTitle: string;
+	  }
+	| {
+			type: "trello.card.description_update";
+			linearIssueId: string;
+			description?: string | null;
+	  }
+	| {
+			type: "trello.card.due_date_update";
+			linearIssueId: string;
+			dueDate?: string | null;
+	  }
+	| {
+			type: "trello.card.status_update";
+			linearIssueId: string;
+			linearStateName: string;
+			trelloListName?: string;
 	  }
 	| {
 			type: "noop";
