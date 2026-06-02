@@ -17,9 +17,15 @@ function parseTrelloLabel(label: {
 	};
 }
 
+function hasOldField(old: Record<string, unknown> | undefined, field: string) {
+	return old ? Object.hasOwn(old, field) : false;
+}
+
 export function parseTrelloEvent(payload: TrelloWebhook): ParsedTrelloEvent {
 	const action = payload.action;
-	const card = action?.data?.card;
+	const data = action?.data;
+	const card = data?.card;
+	const old = data?.old;
 
 	if (!action) {
 		console.warn("Trello webhook payload does not contain an action.");
@@ -75,57 +81,47 @@ export function parseTrelloEvent(payload: TrelloWebhook): ParsedTrelloEvent {
 		};
 	}
 
-	if (
-		action.type === "updateCard" &&
-		typeof action.data?.old?.name === "string"
-	) {
+	if (action.type === "updateCard" && typeof old?.name === "string") {
 		return {
 			type: "card.renamed",
 			cardId: card.id,
 			cardName: card.name,
-			previousName: action.data.old.name,
+			previousName: old.name,
 		};
 	}
 
-	if (
-		action.type === "updateCard" &&
-		typeof action.data?.old?.desc === "string"
-	) {
+	if (action.type === "updateCard" && typeof old?.desc === "string") {
 		return {
 			type: "card.description_changed",
 			cardId: card.id,
 			cardName: card.name,
 			description: card.desc,
-			previousDescription: action.data.old.desc,
+			previousDescription: old.desc,
 		};
 	}
 
-	if (
-		action.type === "updateCard" &&
-		typeof action.data?.old?.idList === "string"
-	) {
+	if (action.type === "updateCard" && typeof old?.idList === "string") {
 		return {
 			type: "card.moved",
 			cardId: card.id,
 			cardName: card.name,
-			fromListId: action.data.old.idList,
-			fromListName: action.data.listBefore?.name,
-			toListId: action.data.listAfter?.id,
-			toListName: action.data.listAfter?.name,
+			fromListId: old.idList,
+			fromListName: data?.listBefore?.name,
+			toListId: data?.listAfter?.id,
+			toListName: data?.listAfter?.name,
 		};
 	}
 
 	if (
 		action.type === "updateCard" &&
-		(typeof action.data?.old?.due === "string" ||
-			action.data?.old?.due === null)
+		(typeof old?.due === "string" || old?.due === null)
 	) {
 		return {
 			type: "card.due_date_changed",
 			cardId: card.id,
 			cardName: card.name,
 			dueDate: card.due,
-			previousDueDate: action.data.old.due,
+			previousDueDate: old.due,
 		};
 	}
 
@@ -159,40 +155,41 @@ export function parseTrelloEvent(payload: TrelloWebhook): ParsedTrelloEvent {
 		};
 	}
 
-	if (action.type === "updateCard" && action.data?.old?.pos) {
+	if (action.type === "updateCard" && hasOldField(old, "pos")) {
 		return {
 			type: "ignored",
 			reason: "position updated",
 		};
 	}
 
-	if (action.type === "updateCard" && action.data?.old?.idLabels) {
+	if (action.type === "updateCard" && hasOldField(old, "idLabels")) {
 		return {
 			type: "ignored",
 			reason: "label ids updated",
 		};
 	}
 
-	if (
-		action.type === "updateCard" &&
-		typeof action.data?.old?.dueComplete === "boolean"
-	) {
+	if (action.type === "updateCard" && typeof old?.dueComplete === "boolean") {
 		return {
 			type: "ignored",
 			reason: "due completion updated",
 		};
 	}
 
-	if (
-		action.type === "updateCard" &&
-		typeof action.data?.old?.closed === "boolean"
-	) {
+	if (action.type === "updateCard" && typeof old?.closed === "boolean") {
+		if (typeof card.closed !== "boolean") {
+			return {
+				type: "ignored",
+				reason: "archive status update is missing current closed value",
+			};
+		}
+
 		return {
 			type: "card.archive_status_changed",
 			cardId: card.id,
 			cardName: card.name,
 			archived: card.closed,
-			previousArchived: action.data.old.closed,
+			previousArchived: old.closed,
 		};
 	}
 

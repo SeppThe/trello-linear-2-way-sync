@@ -17,6 +17,10 @@ function verifyLinearSignature(rawBody: string, signatureHeader?: string) {
 		return false;
 	}
 
+	if (!/^[\da-f]+$/i.test(signatureHeader)) {
+		return false;
+	}
+
 	const headerSignature = Buffer.from(signatureHeader, "hex");
 	const computedSignature = createHmac("sha256", env.LINEAR_WEBHOOK_SECRET)
 		.update(rawBody)
@@ -34,7 +38,7 @@ function isCurrentLinearWebhook(timestamp?: number) {
 		return true;
 	}
 
-	if (!timestamp) {
+	if (typeof timestamp !== "number") {
 		return false;
 	}
 

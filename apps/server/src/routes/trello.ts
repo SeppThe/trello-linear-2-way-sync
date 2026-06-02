@@ -13,7 +13,15 @@ trelloRoutes.get("/", (c) => {
 	return c.text("Trello webhook route works");
 });
 trelloRoutes.post("/", async (c) => {
-	const rawBody = await c.req.json();
+	let rawBody: unknown;
+
+	try {
+		rawBody = await c.req.json();
+	} catch (error) {
+		console.error("Invalid Trello webhook JSON:", error);
+		return c.json({ ok: true });
+	}
+
 	const result = trelloWebhookSchema.safeParse(rawBody);
 
 	if (!result.success) {

@@ -1,4 +1,10 @@
 import { env } from "@Trello-Linear-2-way-sync/env/server";
+import { z } from "zod";
+
+const trelloCardUpdateResponseSchema = z.looseObject({
+	id: z.string(),
+	name: z.string(),
+});
 
 function getTrelloAuth() {
 	if (!env.TRELLO_API_KEY || !env.TRELLO_TOKEN) {
@@ -31,8 +37,6 @@ export async function updateTrelloCardName(cardId: string, name: string) {
 		throw new Error(`Trello card update failed with status ${response.status}`);
 	}
 
-	return response.json() as Promise<{
-		id: string;
-		name: string;
-	}>;
+	const payload = await response.json();
+	return trelloCardUpdateResponseSchema.parse(payload);
 }

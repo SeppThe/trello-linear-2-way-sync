@@ -50,5 +50,9 @@ coverage
 tmp
 temp
 
+# Codex / local agent tooling
+.agents/
+.codex/
+skills-lock.json
 
 context.md

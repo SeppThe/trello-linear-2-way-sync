@@ -21,6 +21,19 @@ import {
 import { buildSyncCommand } from "@/sync/trello-sync-command";
 import type { ParsedTrelloEvent, SyncCommand } from "@/types/types";
 
+const ECHO_WINDOW_MS = 30_000;
+
+function isLikelyLinearEcho(
+	lastSyncSource?: string | null,
+	lastSyncedAt?: Date | null,
+) {
+	if (lastSyncSource !== "linear" || !lastSyncedAt) {
+		return false;
+	}
+
+	return Date.now() - lastSyncedAt.getTime() < ECHO_WINDOW_MS;
+}
+
 async function executeSyncCommand(command: SyncCommand) {
 	switch (command.type) {
 		case "linear.issue.create": {
@@ -137,6 +150,22 @@ async function executeSyncCommand(command: SyncCommand) {
 					trelloCardId: command.trelloCardId,
 					title: command.title,
 				});
+				return;
+			}
+
+			if (
+				isLikelyLinearEcho(
+					existingMapping.lastSyncSource,
+					existingMapping.lastSyncedAt,
+				)
+			) {
+				console.log(
+					"Skipping Trello title webhook that looks like a Linear echo:",
+					{
+						trelloCardId: command.trelloCardId,
+						linearIssueId: existingMapping.linearIssueId,
+					},
+				);
 				return;
 			}
 

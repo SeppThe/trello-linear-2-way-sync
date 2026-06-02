@@ -58,17 +58,17 @@ async function executeLinearSyncCommand(command: LinearSyncCommand) {
 			);
 			const syncDate = new Date();
 
+			await updateMappingByLinearIssueId(command.linearIssueId, {
+				lastSyncSource: "linear",
+				lastSyncedAt: syncDate,
+			});
+
 			await updateTrelloCard(existingMapping.trelloCardId, {
 				name: trelloCard.name,
 			});
 
 			await updateLinearIssue(command.linearIssueId, {
 				title: command.title,
-			});
-
-			await updateMappingByLinearIssueId(command.linearIssueId, {
-				lastSyncSource: "linear",
-				lastSyncedAt: syncDate,
 			});
 
 			console.log("Updated Trello card name from Linear issue title:", {
