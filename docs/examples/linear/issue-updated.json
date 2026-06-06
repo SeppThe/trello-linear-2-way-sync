@@ -1,0 +1,33 @@
+{
+	"action": "update",
+	"type": "Issue",
+	"webhookId": "linear-webhook-update-001",
+	"webhookTimestamp": 1780743600000,
+	"data": {
+		"id": "linear-issue-001",
+		"identifier": "ENG-101",
+		"title": "Publish the sync documentation",
+		"description": "Review and publish the documentation.",
+		"priority": 1,
+		"dueDate": "2026-06-10",
+		"state": {
+			"id": "linear-state-progress",
+			"name": "In Progress"
+		}
+	},
+	"updatedFrom": {
+		"title": "Document the sync service",
+		"description": "Write complete project documentation.",
+		"priority": 2,
+		"dueDate": "2026-06-15",
+		"state": {
+			"id": "linear-state-todo",
+			"name": "Todo"
+		}
+	},
+	"actor": {
+		"id": "linear-user-example",
+		"type": "user",
+		"name": "Example User"
+	}
+}

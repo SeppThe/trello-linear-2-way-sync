@@ -1,68 +1,94 @@
-# Trello-Linear-2-way-sync
+# Trello-Linear Two-Way Sync
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines Hono, and more.
+A TypeScript service that keeps Trello cards and Linear issues synchronized through webhooks.
 
-## Features
+The service receives JSON webhook payloads from Trello and Linear, validates and normalizes them, converts them into internal sync commands, writes changes to the opposite platform, and stores local item and comment mappings in PostgreSQL.
 
-- **TypeScript** - For type safety and improved developer experience
-- **Hono** - Lightweight, performant server framework
-- **Node.js** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Biome** - Linting and formatting
-- **Turborepo** - Optimized monorepo build system
+## Current Capabilities
 
-## Getting Started
+| Capability | Trello to Linear | Linear to Trello |
+|---|---:|---:|
+| Create item | Supported | Supported |
+| Rename | Supported | Supported |
+| Description | Supported | Supported |
+| Due date | Supported | Supported |
+| List / workflow state | Supported | Supported |
+| Archive and reopen | Supported | Supported |
+| Comments | Supported | Supported |
+| Priority | Parsed from Trello conventions | Written into Trello descriptions |
+| Multiple fields in one webhook | Supported | Supported |
 
-First, install the dependencies:
+Labels, members/assignees, attachments, multi-board configuration, persistent event deduplication, retries, queues, and an admin dashboard are not yet implemented.
+
+## How It Works
+
+```text
+Webhook JSON
+  -> Hono route
+  -> Zod schema validation
+  -> normalized domain event
+  -> sync command
+  -> mapping and echo checks
+  -> Trello REST or Linear GraphQL API
+  -> PostgreSQL cache and mapping update
+```
+
+See the [documentation index](docs/README.md) for architecture, complete sync flows, examples, setup, operations, and the roadmap.
+
+## Quick Start
+
+Requirements:
+
+- Node.js
+- pnpm
+- PostgreSQL or Neon database
+- Linear API key and team ID
+- Trello API key, token, and board ID
 
 ```bash
 pnpm install
-```
-
-## Database Setup
-
-This project uses PostgreSQL with Drizzle ORM.
-
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
-
-3. Apply the schema to your database:
-
-```bash
-pnpm run db:push
-```
-
-Then, run the development server:
-
-```bash
+cp apps/server/.env.example apps/server/.env
+pnpm run db:migrate
 pnpm run dev
 ```
 
-The API is running at [http://localhost:3000](http://localhost:3000).
+The server starts on `http://localhost:3000` by default.
 
-## Git Hooks and Formatting
+Configure webhook targets:
 
-- Format and lint fix: `pnpm run check`
-
-## Project Structure
-
-```
-Trello-Linear-2-way-sync/
-├── apps/
-│   └── server/      # Backend API (Hono)
-├── packages/
-│   └── db/          # Database schema & queries
+```text
+Trello: <public-server-url>/webhooks/trello
+Linear: <public-server-url>/webhooks/linear
 ```
 
-## Available Scripts
+For full setup instructions, see [Local Setup](docs/development/setup.md).
 
-- `pnpm run dev`: Start all applications in development mode
-- `pnpm run build`: Build all applications
-- `pnpm run dev:server`: Start only the server
-- `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run db:push`: Push schema changes to database
-- `pnpm run db:generate`: Generate database client/types
-- `pnpm run db:migrate`: Run database migrations
-- `pnpm run db:studio`: Open database studio UI
-- `pnpm run check`: Run Biome formatting and linting
+## Repository Structure
+
+```text
+apps/server/       Hono webhook server and sync logic
+packages/db/       Drizzle schema, migrations, and repositories
+packages/env/      Typed environment validation
+packages/config/   Shared TypeScript configuration
+docs/              Project documentation
+```
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `pnpm run dev` | Start development tasks |
+| `pnpm run dev:server` | Start only the server |
+| `pnpm run build` | Build the project |
+| `pnpm run check-types` | Check TypeScript contracts |
+| `pnpm run check` | Run Biome with fixes |
+| `pnpm run db:push` | Push the current schema |
+| `pnpm run db:generate` | Generate a Drizzle migration |
+| `pnpm run db:migrate` | Apply migrations |
+| `pnpm run db:studio` | Open Drizzle Studio |
+
+## Project Status
+
+The core two-way sync behavior is substantially implemented, but production hardening remains. There are currently no automated tests, persistent webhook event records, queue, retry system, or per-item lock.
+
+See [Current Status](docs/roadmap/current-status.md) and [Roadmap](docs/roadmap/roadmap.md).

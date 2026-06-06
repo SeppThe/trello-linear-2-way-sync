@@ -1,0 +1,31 @@
+{
+	"action": {
+		"id": "trello-action-create-001",
+		"type": "createCard",
+		"date": "2026-06-06T10:00:00.000Z",
+		"data": {
+			"card": {
+				"id": "trello-card-001",
+				"name": "Document the sync service",
+				"desc": "** High\n\nWrite complete project documentation.",
+				"due": "2026-06-15T00:00:00.000Z",
+				"idList": "trello-list-todo",
+				"labels": [
+					{
+						"id": "trello-label-high",
+						"name": "High",
+						"color": "red"
+					}
+				]
+			},
+			"list": {
+				"id": "trello-list-todo",
+				"name": "ToDo"
+			},
+			"board": {
+				"id": "trello-board-example",
+				"name": "Example Board"
+			}
+		}
+	}
+}

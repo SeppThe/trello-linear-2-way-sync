@@ -1,0 +1,28 @@
+{
+	"action": "create",
+	"type": "Issue",
+	"webhookId": "linear-webhook-create-001",
+	"webhookTimestamp": 1780740000000,
+	"data": {
+		"id": "linear-issue-001",
+		"identifier": "ENG-101",
+		"title": "Document the sync service",
+		"description": "Write complete project documentation.",
+		"priority": 2,
+		"dueDate": "2026-06-15",
+		"state": {
+			"id": "linear-state-todo",
+			"name": "Todo"
+		},
+		"team": {
+			"id": "linear-team-example",
+			"name": "Engineering",
+			"key": "ENG"
+		}
+	},
+	"actor": {
+		"id": "linear-user-example",
+		"type": "user",
+		"name": "Example User"
+	}
+}

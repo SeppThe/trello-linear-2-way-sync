@@ -1,0 +1,30 @@
+{
+	"action": {
+		"id": "trello-action-update-001",
+		"type": "updateCard",
+		"date": "2026-06-06T11:00:00.000Z",
+		"data": {
+			"card": {
+				"id": "trello-card-001",
+				"name": "Publish the sync documentation",
+				"desc": "** Urgent\n\nReview and publish the documentation.",
+				"due": "2026-06-10T00:00:00.000Z",
+				"idList": "trello-list-progress"
+			},
+			"old": {
+				"name": "Document the sync service",
+				"desc": "** High\n\nWrite complete project documentation.",
+				"due": "2026-06-15T00:00:00.000Z",
+				"idList": "trello-list-todo"
+			},
+			"listBefore": {
+				"id": "trello-list-todo",
+				"name": "ToDo"
+			},
+			"listAfter": {
+				"id": "trello-list-progress",
+				"name": "In Progress"
+			}
+		}
+	}
+}
