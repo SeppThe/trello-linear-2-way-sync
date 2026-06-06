@@ -72,7 +72,7 @@ export type ParsedTrelloEvent =
 			type: "card.archive_status_changed";
 			cardId: string;
 			cardName: string;
-			archived?: boolean;
+			archived: boolean;
 			previousArchived: boolean;
 	  }
 	| {
@@ -142,6 +142,10 @@ export type SyncCommand =
 	  }
 	| {
 			type: "linear.issue.close";
+			trelloCardId: string;
+	  }
+	| {
+			type: "linear.issue.reopen";
 			trelloCardId: string;
 	  }
 	| {

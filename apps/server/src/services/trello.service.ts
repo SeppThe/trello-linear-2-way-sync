@@ -10,9 +10,10 @@ import {
 	upsertTrelloCard,
 } from "@Trello-Linear-2-way-sync/db";
 import {
-	closeLinearIssue,
+	archiveLinearIssue,
 	createLinearComment,
 	createLinearIssueFromCommand,
+	reopenLinearIssue,
 	updateLinearIssueDescriptionFromCommand,
 	updateLinearIssueDueDateFromCommand,
 	updateLinearIssueStateByName,
@@ -341,7 +342,7 @@ async function executeSyncCommand(command: SyncCommand) {
 
 			await markTrelloSyncStarted(command.trelloCardId);
 
-			await closeLinearIssue(existingMapping.linearIssueId);
+			await archiveLinearIssue(existingMapping.linearIssueId);
 
 			await updateTrelloCard(command.trelloCardId, {
 				archived: true,
@@ -349,10 +350,49 @@ async function executeSyncCommand(command: SyncCommand) {
 
 			await updateLinearIssue(existingMapping.linearIssueId, {
 				archived: true,
-				stateName: "Closed",
 			});
 
-			console.log("Closed Linear issue from Trello card deletion:", {
+			console.log("Archived Linear issue from Trello card archive/delete:", {
+				trelloCardId: command.trelloCardId,
+				linearIssueId: existingMapping.linearIssueId,
+			});
+			return;
+		}
+
+		case "linear.issue.reopen": {
+			const existingMapping = await getMappingByTrelloCardId(
+				command.trelloCardId,
+			);
+			if (!existingMapping?.linearIssueId) {
+				console.log("No mapping found, skipping Linear issue reopen:", {
+					trelloCardId: command.trelloCardId,
+				});
+				return;
+			}
+
+			if (
+				shouldSkipLinearEcho(
+					command,
+					existingMapping.lastSyncSource,
+					existingMapping.lastSyncedAt,
+				)
+			) {
+				return;
+			}
+
+			await markTrelloSyncStarted(command.trelloCardId);
+
+			await reopenLinearIssue(existingMapping.linearIssueId);
+
+			await updateTrelloCard(command.trelloCardId, {
+				archived: false,
+			});
+
+			await updateLinearIssue(existingMapping.linearIssueId, {
+				archived: false,
+			});
+
+			console.log("Reopened Linear issue from Trello card unarchive:", {
 				trelloCardId: command.trelloCardId,
 				linearIssueId: existingMapping.linearIssueId,
 			});
@@ -424,13 +464,22 @@ async function executeSyncCommand(command: SyncCommand) {
 	}
 }
 
-export async function handleTrelloWebhook(event: ParsedTrelloEvent) {
-	const command = buildSyncCommand(event);
-	console.log("Built sync command:", command);
+export async function handleTrelloWebhook(
+	eventOrEvents: ParsedTrelloEvent | ParsedTrelloEvent[],
+) {
+	const events = Array.isArray(eventOrEvents) ? eventOrEvents : [eventOrEvents];
 
-	try {
-		await executeSyncCommand(command);
-	} catch (error) {
-		console.error("Failed to execute Trello sync command:", error);
+	for (const event of events) {
+		const command = buildSyncCommand(event);
+		console.log("Built sync command:", command);
+
+		try {
+			await executeSyncCommand(command);
+		} catch (error) {
+			console.error("Failed to execute Trello sync command:", {
+				commandType: command.type,
+				error,
+			});
+		}
 	}
 }

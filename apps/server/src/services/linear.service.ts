@@ -54,6 +54,15 @@ type LinearIssueArchiveResponse = {
 	errors?: Array<{ message: string }>;
 };
 
+type LinearIssueUnarchiveResponse = {
+	data?: {
+		issueUnarchive?: {
+			success: boolean;
+		};
+	};
+	errors?: Array<{ message: string }>;
+};
+
 type LinearCommentCreateResponse = {
 	data?: {
 		commentCreate?: {
@@ -610,7 +619,7 @@ export async function createLinearComment(
 	};
 }
 
-export async function closeLinearIssue(linearIssueId: string) {
+export async function archiveLinearIssue(linearIssueId: string) {
 	const query = `
 		mutation IssueArchive($id: String!) {
 			issueArchive(id: $id) {
@@ -647,5 +656,45 @@ export async function closeLinearIssue(linearIssueId: string) {
 
 	if (!payload.data?.issueArchive?.success) {
 		throw new Error("Linear issueArchive was not successful");
+	}
+}
+
+export async function reopenLinearIssue(linearIssueId: string) {
+	const query = `
+		mutation IssueUnarchive($id: String!) {
+			issueUnarchive(id: $id) {
+				success
+			}
+		}
+	`;
+
+	const response = await fetch("https://api.linear.app/graphql", {
+		method: "POST",
+		headers: {
+			Authorization: env.LINEAR_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			query,
+			variables: { id: linearIssueId },
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Linear API request failed with status ${response.status}`);
+	}
+
+	const payload = (await response.json()) as LinearIssueUnarchiveResponse;
+
+	if (payload.errors?.length) {
+		throw new Error(
+			`Linear issueUnarchive failed: ${payload.errors
+				.map((error) => error.message)
+				.join("; ")}`,
+		);
+	}
+
+	if (!payload.data?.issueUnarchive?.success) {
+		throw new Error("Linear issueUnarchive was not successful");
 	}
 }

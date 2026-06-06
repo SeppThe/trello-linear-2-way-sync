@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { parseTrelloEvent } from "@/parser/trello";
+import { parseTrelloEvents } from "@/parser/trello";
 import { trelloWebhookSchema } from "@/schemas/trello";
 import { handleTrelloWebhook } from "@/services/trello.service";
 
@@ -47,8 +47,9 @@ trelloRoutes.post("/", async (c) => {
 		memberCreator: action?.memberCreator,
 	});
 
-	const eventType = parseTrelloEvent(body);
-	await handleTrelloWebhook(eventType);
+	const events = parseTrelloEvents(body);
+	console.log("Parsed Trello events:", events);
+	await handleTrelloWebhook(events);
 
 	return c.json({ ok: true });
 });

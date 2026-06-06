@@ -65,9 +65,8 @@ export function buildSyncCommand(
 		}
 
 		return {
-			type: "noop",
-			reason:
-				"Trello card was unarchived; Linear reopen is not implemented yet",
+			type: "linear.issue.reopen",
+			trelloCardId: event.cardId,
 		};
 	}
 
