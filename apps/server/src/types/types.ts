@@ -99,6 +99,7 @@ export type ParsedLinearEvent =
 			dueDate?: string | null;
 			stateName?: string;
 			teamId?: string;
+			priority?: LinearPriority;
 	  }
 	| {
 			type: "issue.renamed";
@@ -111,6 +112,7 @@ export type ParsedLinearEvent =
 			linearIssueId: string;
 			description?: string | null;
 			previousDescription?: string | null;
+			priority?: LinearPriority;
 	  }
 	| {
 			type: "issue.due_date_changed";
@@ -128,6 +130,13 @@ export type ParsedLinearEvent =
 			type: "issue.archive_status_changed";
 			linearIssueId: string;
 			archived: boolean;
+	  }
+	| {
+			type: "issue.commented";
+			linearIssueId: string;
+			linearCommentId: string;
+			commentBody: string;
+			authorName?: string;
 	  }
 	| {
 			type: "ignored";
@@ -198,10 +207,12 @@ export type LinearSyncCommand =
 			identifier?: string;
 			title: string;
 			description?: string | null;
+			linearDescription?: string | null;
 			dueDate?: string | null;
 			linearStateName?: string;
 			trelloListName: string;
 			teamId?: string;
+			priority?: LinearPriority;
 	  }
 	| {
 			type: "trello.card.rename";
@@ -213,6 +224,8 @@ export type LinearSyncCommand =
 			type: "trello.card.description_update";
 			linearIssueId: string;
 			description?: string | null;
+			linearDescription?: string | null;
+			priority?: LinearPriority;
 	  }
 	| {
 			type: "trello.card.due_date_update";
@@ -232,6 +245,12 @@ export type LinearSyncCommand =
 	| {
 			type: "trello.card.reopen";
 			linearIssueId: string;
+	  }
+	| {
+			type: "trello.comment.create";
+			linearIssueId: string;
+			linearCommentId: string;
+			body: string;
 	  }
 	| {
 			type: "noop";

@@ -3,6 +3,7 @@ import {
 	createMapping,
 	getCommentMappingByTrelloActionId,
 	getMappingByTrelloCardId,
+	getTrelloCardById,
 	updateLinearIssue,
 	updateMappingByTrelloCardId,
 	updateTrelloCard,
@@ -59,6 +60,39 @@ function shouldSkipLinearEcho(
 		commandType: command.type,
 		trelloCardId: command.trelloCardId,
 	});
+
+	return true;
+}
+
+async function shouldSkipLinearDescriptionEcho(
+	command: Extract<SyncCommand, { type: "linear.issue.description_update" }>,
+	lastSyncSource?: string | null,
+	lastSyncedAt?: Date | null,
+) {
+	if (!isLikelyLinearEcho(lastSyncSource, lastSyncedAt)) {
+		return false;
+	}
+
+	const existingTrelloCard = await getTrelloCardById(command.trelloCardId);
+	const matchesRecentLinearWrite =
+		(existingTrelloCard?.description ?? "") === (command.description ?? "");
+
+	if (!matchesRecentLinearWrite) {
+		console.log(
+			"Recent Linear sync found, but Trello changed the description; applying it:",
+			{
+				trelloCardId: command.trelloCardId,
+			},
+		);
+		return false;
+	}
+
+	console.log(
+		"Skipping Trello description webhook that matches the Linear echo:",
+		{
+			trelloCardId: command.trelloCardId,
+		},
+	);
 
 	return true;
 }
@@ -228,7 +262,7 @@ async function executeSyncCommand(command: SyncCommand) {
 			}
 
 			if (
-				shouldSkipLinearEcho(
+				await shouldSkipLinearDescriptionEcho(
 					command,
 					existingMapping.lastSyncSource,
 					existingMapping.lastSyncedAt,

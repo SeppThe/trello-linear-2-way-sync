@@ -1,5 +1,9 @@
 import { defaultSyncConfig, type SyncConfig } from "@/sync/sync-config";
-import type { LinearSyncCommand, ParsedLinearEvent } from "@/types/types";
+import type {
+	LinearPriority,
+	LinearSyncCommand,
+	ParsedLinearEvent,
+} from "@/types/types";
 
 function normalizeMappingKey(value: string) {
 	return value
@@ -12,6 +16,40 @@ function normalizeMappingKey(value: string) {
 		.trim();
 }
 
+function descriptionWithPriority(
+	description: string | null | undefined,
+	priority: LinearPriority | undefined,
+	config: SyncConfig,
+) {
+	if (!priority) {
+		return description;
+	}
+
+	const descriptionWithoutPriority = (description ?? "")
+		.split("\n")
+		.filter((line) => !config.priorityTokens[normalizeMappingKey(line)])
+		.join("\n")
+		.trim();
+
+	if (priority === "No Priority") {
+		return descriptionWithoutPriority;
+	}
+
+	const priorityMarker = `** ${priority}`;
+
+	return descriptionWithoutPriority
+		? `${priorityMarker}\n\n${descriptionWithoutPriority}`
+		: priorityMarker;
+}
+
+function formatLinearComment(
+	event: Extract<ParsedLinearEvent, { type: "issue.commented" }>,
+) {
+	const author = event.authorName ?? "Unknown Linear user";
+
+	return `Linear comment from ${author}:\n\n${event.commentBody}`;
+}
+
 export function buildLinearSyncCommand(
 	event: ParsedLinearEvent,
 	config: SyncConfig = defaultSyncConfig,
@@ -22,7 +60,12 @@ export function buildLinearSyncCommand(
 			linearIssueId: event.linearIssueId,
 			identifier: event.identifier,
 			title: event.title,
-			description: event.description,
+			description: descriptionWithPriority(
+				event.description,
+				event.priority,
+				config,
+			),
+			linearDescription: event.description,
 			dueDate: event.dueDate,
 			linearStateName: event.stateName,
 			trelloListName: event.stateName
@@ -30,6 +73,7 @@ export function buildLinearSyncCommand(
 					config.defaultTrelloListName)
 				: config.defaultTrelloListName,
 			teamId: event.teamId,
+			priority: event.priority,
 		};
 	}
 
@@ -46,7 +90,13 @@ export function buildLinearSyncCommand(
 		return {
 			type: "trello.card.description_update",
 			linearIssueId: event.linearIssueId,
-			description: event.description,
+			description: descriptionWithPriority(
+				event.description,
+				event.priority,
+				config,
+			),
+			linearDescription: event.description,
+			priority: event.priority,
 		};
 	}
 
@@ -64,7 +114,8 @@ export function buildLinearSyncCommand(
 			linearIssueId: event.linearIssueId,
 			linearStateName: event.stateName,
 			trelloListName:
-				config.linearStateListNames[normalizeMappingKey(event.stateName)],
+				config.linearStateListNames[normalizeMappingKey(event.stateName)] ??
+				event.stateName,
 		};
 	}
 
@@ -72,6 +123,15 @@ export function buildLinearSyncCommand(
 		return {
 			type: event.archived ? "trello.card.archive" : "trello.card.reopen",
 			linearIssueId: event.linearIssueId,
+		};
+	}
+
+	if (event.type === "issue.commented") {
+		return {
+			type: "trello.comment.create",
+			linearIssueId: event.linearIssueId,
+			linearCommentId: event.linearCommentId,
+			body: formatLinearComment(event),
 		};
 	}
 

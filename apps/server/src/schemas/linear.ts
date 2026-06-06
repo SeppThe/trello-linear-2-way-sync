@@ -23,6 +23,9 @@ const linearIssueSchema = z.looseObject({
 	archivedAt: z.string().nullable().optional(),
 	state: linearStateSchema.nullable().optional(),
 	team: linearTeamSchema.nullable().optional(),
+	body: z.string().optional(),
+	issueId: z.string().optional(),
+	userId: z.string().nullable().optional(),
 });
 
 export const linearWebhookSchema = z.looseObject({

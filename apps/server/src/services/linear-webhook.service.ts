@@ -1,5 +1,8 @@
 import {
+	createCommentMapping,
 	createMapping,
+	getCommentMappingByLinearCommentId,
+	getLinearIssueById,
 	getMappingByLinearIssueId,
 	getTrelloCardById,
 	updateLinearIssue,
@@ -11,6 +14,7 @@ import {
 import {
 	archiveTrelloCard,
 	createTrelloCard,
+	createTrelloComment,
 	getTrelloListByName,
 	moveTrelloCardToList,
 	reopenTrelloCard,
@@ -19,6 +23,7 @@ import {
 	updateTrelloCardName,
 } from "@/services/trello-api.service";
 import { buildLinearSyncCommand } from "@/sync/linear-sync-command";
+import { defaultSyncConfig } from "@/sync/sync-config";
 import type { LinearSyncCommand, ParsedLinearEvent } from "@/types/types";
 
 const ECHO_WINDOW_MS = 30_000;
@@ -73,8 +78,158 @@ function shouldSkipTrelloEcho(
 	return true;
 }
 
+async function shouldSkipTrelloStatusEcho(
+	command: Extract<LinearSyncCommand, { type: "trello.card.status_update" }>,
+	trelloCardId: string,
+	lastSyncSource?: string | null,
+	lastSyncedAt?: Date | null,
+) {
+	if (!isLikelyTrelloEcho(lastSyncSource, lastSyncedAt)) {
+		return false;
+	}
+
+	const [existingTrelloCard, existingLinearIssue] = await Promise.all([
+		getTrelloCardById(trelloCardId),
+		getLinearIssueById(command.linearIssueId),
+	]);
+	const normalizedLinearStateName = normalizeStatusName(
+		command.linearStateName,
+	);
+	const cachedLinearStateName = existingLinearIssue?.stateName
+		? normalizeStatusName(existingLinearIssue.stateName)
+		: undefined;
+	const stateFromCurrentTrelloList = existingTrelloCard?.listName
+		? defaultSyncConfig.statusListNames[
+				normalizeStatusName(existingTrelloCard.listName)
+			]
+		: undefined;
+	const normalizedStateFromCurrentTrelloList = stateFromCurrentTrelloList
+		? normalizeStatusName(stateFromCurrentTrelloList)
+		: undefined;
+	const matchesRecentTrelloWrite =
+		cachedLinearStateName === normalizedLinearStateName ||
+		normalizedStateFromCurrentTrelloList === normalizedLinearStateName ||
+		(existingTrelloCard?.listName
+			? normalizeStatusName(existingTrelloCard.listName) ===
+				normalizedLinearStateName
+			: false);
+
+	if (!matchesRecentTrelloWrite) {
+		console.log(
+			"Recent Trello sync found, but Linear selected a different status; applying it:",
+			{
+				linearIssueId: command.linearIssueId,
+				trelloCardId,
+				linearStateName: command.linearStateName,
+				cachedLinearStateName: existingLinearIssue?.stateName,
+				currentTrelloListName: existingTrelloCard?.listName,
+			},
+		);
+		return false;
+	}
+
+	console.log("Skipping Linear status webhook that matches the Trello echo:", {
+		linearIssueId: command.linearIssueId,
+		trelloCardId,
+		linearStateName: command.linearStateName,
+		currentTrelloListName: existingTrelloCard?.listName,
+	});
+
+	return true;
+}
+
+async function shouldSkipTrelloDescriptionEcho(
+	command: Extract<
+		LinearSyncCommand,
+		{ type: "trello.card.description_update" }
+	>,
+	lastSyncSource?: string | null,
+	lastSyncedAt?: Date | null,
+) {
+	if (!isLikelyTrelloEcho(lastSyncSource, lastSyncedAt)) {
+		return false;
+	}
+
+	const existingLinearIssue = await getLinearIssueById(command.linearIssueId);
+	const matchesRecentTrelloWrite =
+		(existingLinearIssue?.description ?? null) ===
+			(command.linearDescription ?? null) &&
+		(existingLinearIssue?.priority ?? null) === (command.priority ?? null);
+
+	if (!matchesRecentTrelloWrite) {
+		console.log(
+			"Recent Trello sync found, but Linear changed description or priority; applying it:",
+			{
+				linearIssueId: command.linearIssueId,
+				priority: command.priority,
+			},
+		);
+		return false;
+	}
+
+	console.log(
+		"Skipping Linear description/priority webhook that matches the Trello echo:",
+		{
+			linearIssueId: command.linearIssueId,
+			priority: command.priority,
+		},
+	);
+
+	return true;
+}
+
+function normalizeStatusName(value: string) {
+	return value.toLowerCase().replace(/[_-]+/g, " ").trim();
+}
+
 async function executeLinearSyncCommand(command: LinearSyncCommand) {
 	switch (command.type) {
+		case "trello.comment.create": {
+			const existingCommentMapping = await getCommentMappingByLinearCommentId(
+				command.linearCommentId,
+			);
+
+			if (existingCommentMapping) {
+				console.log("Linear comment already synced, skipping:", {
+					linearCommentId: command.linearCommentId,
+					trelloActionId: existingCommentMapping.trelloActionId,
+				});
+				return;
+			}
+
+			const existingMapping = await getMappingByLinearIssueId(
+				command.linearIssueId,
+			);
+
+			if (!existingMapping?.trelloCardId) {
+				logMissingMapping(command);
+				return;
+			}
+
+			await markLinearSyncStarted(command.linearIssueId);
+
+			const commentAction = await createTrelloComment(
+				existingMapping.trelloCardId,
+				command.body,
+			);
+
+			await createCommentMapping({
+				trelloActionId: commentAction.id,
+				trelloCardId: existingMapping.trelloCardId,
+				linearIssueId: command.linearIssueId,
+				linearCommentId: command.linearCommentId,
+				source: "linear",
+			});
+
+			console.log("Created Trello comment from Linear comment:", {
+				linearIssueId: command.linearIssueId,
+				linearCommentId: command.linearCommentId,
+				trelloCardId: existingMapping.trelloCardId,
+				trelloActionId: commentAction.id,
+			});
+			return;
+		}
+
 		case "trello.card.create": {
 			const existingMapping = await getMappingByLinearIssueId(
 				command.linearIssueId,
@@ -118,7 +273,8 @@ async function executeLinearSyncCommand(command: LinearSyncCommand) {
 					identifier: command.identifier,
 					teamId: command.teamId,
 					title: command.title,
-					description: command.description,
+					description: command.linearDescription,
+					priority: command.priority,
 					dueDate: command.dueDate ? new Date(command.dueDate) : null,
 					stateName: command.linearStateName,
 					archived: false,
@@ -158,7 +314,8 @@ async function executeLinearSyncCommand(command: LinearSyncCommand) {
 				identifier: command.identifier,
 				teamId: command.teamId,
 				title: command.title,
-				description: command.description,
+				description: command.linearDescription,
+				priority: command.priority,
 				dueDate: command.dueDate ? new Date(command.dueDate) : null,
 				stateName: command.linearStateName,
 				archived: false,
@@ -244,7 +401,7 @@ async function executeLinearSyncCommand(command: LinearSyncCommand) {
 			}
 
 			if (
-				shouldSkipTrelloEcho(
+				await shouldSkipTrelloDescriptionEcho(
 					command,
 					existingMapping.lastSyncSource,
 					existingMapping.lastSyncedAt,
@@ -265,12 +422,14 @@ async function executeLinearSyncCommand(command: LinearSyncCommand) {
 			});
 
 			await updateLinearIssue(command.linearIssueId, {
-				description: command.description,
+				description: command.linearDescription,
+				priority: command.priority,
 			});
 
 			console.log("Updated Trello card description from Linear issue:", {
 				linearIssueId: command.linearIssueId,
 				trelloCardId: existingMapping.trelloCardId,
+				priority: command.priority,
 			});
 			return;
 		}
@@ -337,8 +496,9 @@ async function executeLinearSyncCommand(command: LinearSyncCommand) {
 			}
 
 			if (
-				shouldSkipTrelloEcho(
+				await shouldSkipTrelloStatusEcho(
 					command,
+					existingMapping.trelloCardId,
 					existingMapping.lastSyncSource,
 					existingMapping.lastSyncedAt,
 				)

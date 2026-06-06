@@ -15,6 +15,15 @@ const trelloListSchema = z.looseObject({
 	name: z.string(),
 });
 
+const trelloCommentActionSchema = z.looseObject({
+	id: z.string(),
+	data: z
+		.looseObject({
+			text: z.string().optional(),
+		})
+		.optional(),
+});
+
 function getTrelloAuth() {
 	if (!env.TRELLO_API_KEY || !env.TRELLO_TOKEN) {
 		throw new Error("Missing TRELLO_API_KEY or TRELLO_TOKEN");
@@ -131,6 +140,28 @@ export async function createTrelloCard(input: {
 
 	const payload = await response.json();
 	return trelloCardUpdateResponseSchema.parse(payload);
+}
+
+export async function createTrelloComment(cardId: string, text: string) {
+	const url = createTrelloUrl(`cards/${cardId}/actions/comments`);
+
+	const response = await fetch(url, {
+		method: "POST",
+		headers: {
+			Accept: "application/json",
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ text }),
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Trello comment create failed with status ${response.status}`,
+		);
+	}
+
+	const payload = await response.json();
+	return trelloCommentActionSchema.parse(payload);
 }
 
 export async function getTrelloBoardLists() {

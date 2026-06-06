@@ -1,5 +1,13 @@
 import type { LinearWebhook } from "@/schemas/linear";
-import type { ParsedLinearEvent } from "@/types/types";
+import type { LinearPriority, ParsedLinearEvent } from "@/types/types";
+
+const linearPriorityByNumber: Record<number, LinearPriority> = {
+	0: "No Priority",
+	1: "Urgent",
+	2: "High",
+	3: "Medium",
+	4: "Low",
+};
 
 function hasUpdatedFromField(
 	updatedFrom: Record<string, unknown> | undefined,
@@ -21,6 +29,14 @@ function getPreviousStateName(
 		: undefined;
 }
 
+function parseLinearPriority(priority?: number | null) {
+	if (priority === null) {
+		return "No Priority" satisfies LinearPriority;
+	}
+
+	return priority === undefined ? undefined : linearPriorityByNumber[priority];
+}
+
 export function parseLinearEvents(payload: LinearWebhook): ParsedLinearEvent[] {
 	const action = payload.action?.toLowerCase();
 	const resourceType = payload.type;
@@ -29,6 +45,36 @@ export function parseLinearEvents(payload: LinearWebhook): ParsedLinearEvent[] {
 
 	if (!action || !resourceType) {
 		return [{ type: "ignored", reason: "missing Linear action or type" }];
+	}
+
+	if (resourceType.toLowerCase() === "comment") {
+		if (action !== "create" && action !== "created") {
+			return [
+				{
+					type: "ignored",
+					reason: `unhandled Linear comment action: ${action}`,
+				},
+			];
+		}
+
+		if (!issue?.id || !issue.issueId || !issue.body) {
+			return [
+				{
+					type: "ignored",
+					reason: "Linear comment is missing id, issue id, or body",
+				},
+			];
+		}
+
+		return [
+			{
+				type: "issue.commented",
+				linearIssueId: issue.issueId,
+				linearCommentId: issue.id,
+				commentBody: issue.body,
+				authorName: payload.actor?.name,
+			},
+		];
 	}
 
 	if (resourceType.toLowerCase() !== "issue") {
@@ -61,6 +107,7 @@ export function parseLinearEvents(payload: LinearWebhook): ParsedLinearEvent[] {
 				dueDate: issue.dueDate,
 				stateName: issue.state?.name,
 				teamId: issue.team?.id,
+				priority: parseLinearPriority(issue.priority),
 			},
 		];
 	}
@@ -112,7 +159,10 @@ export function parseLinearEvents(payload: LinearWebhook): ParsedLinearEvent[] {
 			});
 		}
 
-		if (hasUpdatedFromField(updatedFrom, "description")) {
+		if (
+			hasUpdatedFromField(updatedFrom, "description") ||
+			hasUpdatedFromField(updatedFrom, "priority")
+		) {
 			const previousDescription = updatedFrom?.description;
 
 			events.push({
@@ -124,6 +174,7 @@ export function parseLinearEvents(payload: LinearWebhook): ParsedLinearEvent[] {
 					previousDescription === null
 						? previousDescription
 						: undefined,
+				priority: parseLinearPriority(issue.priority),
 			});
 		}
 
