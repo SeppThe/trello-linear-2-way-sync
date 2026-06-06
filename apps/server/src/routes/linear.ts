@@ -1,7 +1,7 @@
 import { env } from "@Trello-Linear-2-way-sync/env/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
-import { parseLinearEvent } from "@/parser/linear";
+import { parseLinearEvents } from "@/parser/linear";
 import { linearWebhookSchema } from "@/schemas/linear";
 import { handleLinearWebhook } from "@/services/linear-webhook.service";
 
@@ -101,8 +101,9 @@ linearRoutes.post("/", async (c) => {
 		actor: body.actor,
 	});
 
-	const event = parseLinearEvent(body);
-	await handleLinearWebhook(event);
+	const events = parseLinearEvents(body);
+	console.log("Parsed Linear events:", events);
+	await handleLinearWebhook(events);
 
 	return c.json({ ok: true });
 });

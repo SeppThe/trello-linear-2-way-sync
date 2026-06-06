@@ -6,6 +6,12 @@ const linearStateSchema = z.looseObject({
 	type: z.string().optional(),
 });
 
+const linearTeamSchema = z.looseObject({
+	id: z.string().optional(),
+	name: z.string().optional(),
+	key: z.string().optional(),
+});
+
 const linearIssueSchema = z.looseObject({
 	id: z.string(),
 	identifier: z.string().optional(),
@@ -13,7 +19,10 @@ const linearIssueSchema = z.looseObject({
 	description: z.string().nullable().optional(),
 	priority: z.number().nullable().optional(),
 	dueDate: z.string().nullable().optional(),
+	archived: z.boolean().optional(),
+	archivedAt: z.string().nullable().optional(),
 	state: linearStateSchema.nullable().optional(),
+	team: linearTeamSchema.nullable().optional(),
 });
 
 export const linearWebhookSchema = z.looseObject({

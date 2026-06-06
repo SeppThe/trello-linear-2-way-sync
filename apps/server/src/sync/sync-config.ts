@@ -5,6 +5,7 @@ export type SyncConfig = {
 	priorityListNames: Record<string, LinearPriority>;
 	statusListNames: Record<string, string>;
 	linearStateListNames: Record<string, string>;
+	defaultTrelloListName: string;
 };
 
 export const defaultSyncConfig: SyncConfig = {
@@ -54,4 +55,5 @@ export const defaultSyncConfig: SyncConfig = {
 		"in progress": "In Progress",
 		done: "Done",
 	},
+	defaultTrelloListName: "Wishes",
 };

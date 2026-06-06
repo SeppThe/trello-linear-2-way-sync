@@ -91,6 +91,16 @@ export type ParsedTrelloEvent =
 
 export type ParsedLinearEvent =
 	| {
+			type: "issue.created";
+			linearIssueId: string;
+			identifier?: string;
+			title: string;
+			description?: string | null;
+			dueDate?: string | null;
+			stateName?: string;
+			teamId?: string;
+	  }
+	| {
 			type: "issue.renamed";
 			linearIssueId: string;
 			title: string;
@@ -113,6 +123,11 @@ export type ParsedLinearEvent =
 			linearIssueId: string;
 			stateName: string;
 			previousStateName?: string;
+	  }
+	| {
+			type: "issue.archive_status_changed";
+			linearIssueId: string;
+			archived: boolean;
 	  }
 	| {
 			type: "ignored";
@@ -178,6 +193,17 @@ export type SyncCommand =
 
 export type LinearSyncCommand =
 	| {
+			type: "trello.card.create";
+			linearIssueId: string;
+			identifier?: string;
+			title: string;
+			description?: string | null;
+			dueDate?: string | null;
+			linearStateName?: string;
+			trelloListName: string;
+			teamId?: string;
+	  }
+	| {
 			type: "trello.card.rename";
 			linearIssueId: string;
 			title: string;
@@ -198,6 +224,14 @@ export type LinearSyncCommand =
 			linearIssueId: string;
 			linearStateName: string;
 			trelloListName?: string;
+	  }
+	| {
+			type: "trello.card.archive";
+			linearIssueId: string;
+	  }
+	| {
+			type: "trello.card.reopen";
+			linearIssueId: string;
 	  }
 	| {
 			type: "noop";

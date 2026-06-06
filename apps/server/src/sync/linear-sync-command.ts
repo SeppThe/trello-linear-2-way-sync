@@ -16,6 +16,23 @@ export function buildLinearSyncCommand(
 	event: ParsedLinearEvent,
 	config: SyncConfig = defaultSyncConfig,
 ): LinearSyncCommand {
+	if (event.type === "issue.created") {
+		return {
+			type: "trello.card.create",
+			linearIssueId: event.linearIssueId,
+			identifier: event.identifier,
+			title: event.title,
+			description: event.description,
+			dueDate: event.dueDate,
+			linearStateName: event.stateName,
+			trelloListName: event.stateName
+				? (config.linearStateListNames[normalizeMappingKey(event.stateName)] ??
+					config.defaultTrelloListName)
+				: config.defaultTrelloListName,
+			teamId: event.teamId,
+		};
+	}
+
 	if (event.type === "issue.renamed") {
 		return {
 			type: "trello.card.rename",
@@ -48,6 +65,13 @@ export function buildLinearSyncCommand(
 			linearStateName: event.stateName,
 			trelloListName:
 				config.linearStateListNames[normalizeMappingKey(event.stateName)],
+		};
+	}
+
+	if (event.type === "issue.archive_status_changed") {
+		return {
+			type: event.archived ? "trello.card.archive" : "trello.card.reopen",
+			linearIssueId: event.linearIssueId,
 		};
 	}
 

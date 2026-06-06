@@ -99,6 +99,40 @@ export async function archiveTrelloCard(cardId: string) {
 	return updateTrelloCardFields(cardId, { closed: true });
 }
 
+export async function reopenTrelloCard(cardId: string) {
+	return updateTrelloCardFields(cardId, { closed: false });
+}
+
+export async function createTrelloCard(input: {
+	listId: string;
+	name: string;
+	description?: string | null;
+	dueDate?: string | null;
+}) {
+	const url = createTrelloUrl("cards");
+
+	const response = await fetch(url, {
+		method: "POST",
+		headers: {
+			Accept: "application/json",
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			idList: input.listId,
+			name: input.name,
+			desc: input.description ?? "",
+			due: input.dueDate ?? null,
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Trello card create failed with status ${response.status}`);
+	}
+
+	const payload = await response.json();
+	return trelloCardUpdateResponseSchema.parse(payload);
+}
+
 export async function getTrelloBoardLists() {
 	const boardId = getTrelloBoardId();
 	const url = createTrelloUrl(`boards/${boardId}/lists`);
